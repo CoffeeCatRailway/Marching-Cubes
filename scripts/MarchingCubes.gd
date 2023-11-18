@@ -1,22 +1,28 @@
 @tool
-class_name Commandar
-extends Node
+class_name MarchingCubes
+extends MeshInstance3D
 
 @export var generate: bool = false:
-	set(value):
+	set(_value):
 		_ready()
 		generate = false
 @export var clear: bool = false:
-	set(value):
-		meshInstance.mesh = null
+	set(_value):
+		self.mesh = null
 		clear = false
 
-@export var useRandomSeed: bool = true
-@export_range(1, 100, 1, "or_greater") var worldSize: int = 20
-@export var smooth: bool = false
+@export var size: int = 20:
+	set(value):
+		size = maxi(1, absi(value))
+
+@export_group("Mesh settings")
+@export var smooth: bool = true
 @export var smoothNormals: bool = false
 
-@export var meshInstance: MeshInstance3D
+@export_group("Noise settings")
+@export var useRandomSeed: bool = false
+@export var sphereical: bool = true
+@export var multiplier: float = 10.
 @export var noise: FastNoiseLite
 
 class GridCell:
@@ -43,12 +49,11 @@ func _ready() -> void:
 		rng.randomize()
 		noise.seed = rng.randi()
 	
-	var surfaceTool := SurfaceTool.new()
-	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
-	
 	# Sample density (noise) & create GridCell object
 	# Pass GridCell into polygoniseCube, construct triangles
 	# Pass triangles into surfaceTool
+	
+	var timeNow: int = Time.get_ticks_msec()
 	
 	var isoLevel := 0.
 	var gridCell := GridCell.new()
@@ -57,23 +62,26 @@ func _ready() -> void:
 	polys.resize(10)
 	
 	var triangles: Array[Triangle] = []
-	var triCount := 0
+	var totalTriCount := 0
 	
-	for x in worldSize:
-		for y in worldSize:
-			for z in worldSize:
+	for x in range(-size, size):
+		for y in range(-size, size):
+			for z in range(-size, size):
 				gridCell.pos.x = x
 				gridCell.pos.y = y
 				gridCell.pos.z = z
 				for i in 8:
 					gridCell.value[i] = calcGridCellValue(gridCell.pos + LookupTable.CornerOffsets[i])
 				
-				var polyCount := polygoniseCube(gridCell, isoLevel, polys)
-				triangles.resize(triCount + polyCount)
-				for i in polyCount:
-					triangles[triCount + i] = polys[i]
-				triCount += polyCount
-	print("Total triangles: %s" % [triCount])
+				var triCount := polygoniseCube(gridCell, isoLevel, polys)
+				triangles.resize(totalTriCount + triCount)
+				for i in triCount:
+					triangles[totalTriCount + i] = polys[i]
+				totalTriCount += triCount
+	print("Triangles: %s" % [totalTriCount])
+	
+	var surfaceTool := SurfaceTool.new()
+	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	
 	for i in triangles.size():
 		surfaceTool.set_normal(triangles[i].normal[2])
@@ -86,15 +94,28 @@ func _ready() -> void:
 		surfaceTool.add_vertex(triangles[i].vertices[0])
 	
 	surfaceTool.index()
-	meshInstance.mesh = surfaceTool.commit()
+	self.mesh = surfaceTool.commit()
+	
+	#var surfaceArray: Array = mesh.surface_get_arrays(0)
+	print("Vertices: %s" % [mesh.get_faces().size() / 3])#surfaceArray[Mesh.ARRAY_VERTEX]
 	
 	#generateSphere()
+	
+	var timeElapsed: int = Time.get_ticks_msec() - timeNow
+	if OS.is_debug_build():
+		print("%s: Cube march took %s seconds" % [name, float(timeElapsed) / 100])
 
 func calcGridCellValue(pos: Vector3) -> float:
+	var noiseVal: float
 	if smooth:
-		return noise.get_noise_3dv(pos)
+		noiseVal = noise.get_noise_3dv(pos)
 	else:
-		return -1. if noise.get_noise_3dv(pos) < 0. else 1.
+		noiseVal = -1. if noise.get_noise_3dv(pos) < 0. else 1.
+	
+	if sphereical:
+		return (size / 2.) - pos.length() + noiseVal * multiplier
+	else:
+		return noiseVal * multiplier
 
 # Given a grid cell and an isoLevel, calcularte the triangular facets requied to represent the isosurface through the cell.
 # Return the number of triangular facets, array "triangles" will be loaded up with the vertices at most 5 triangular facets.
@@ -151,7 +172,7 @@ func vertexInterp(iso: float, p1: Vector3, p2: Vector3, valp1: float, valp2: flo
 	return p1 + (iso - valp1) * (p2 - p1) / (valp2 - valp1)
 
 func generateSphere(rings: int = 10, radialSegments: int = 10, radius: float = 1.) -> void:
-	meshInstance.mesh = ArrayMesh.new()
+	self.mesh = ArrayMesh.new()
 	
 	var surfaceArray := []
 	surfaceArray.resize(Mesh.ARRAY_MAX)
@@ -211,4 +232,4 @@ func generateSphere(rings: int = 10, radialSegments: int = 10, radius: float = 1
 	surfaceArray[Mesh.ARRAY_INDEX] = indices
 	
 	# No blendshapes, lods, or compression used
-	meshInstance.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surfaceArray)
+	self.mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surfaceArray)
