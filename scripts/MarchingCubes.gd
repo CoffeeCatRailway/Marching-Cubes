@@ -109,10 +109,6 @@ func polygoniseCube(grid: GridCell, iso: float, triangles: Array[Triangle]) -> i
 	if grid.value[6] < iso: cubeIndex |= 64
 	if grid.value[7] < iso: cubeIndex |= 128
 	
-	# Cube is entirely in/out of the surface
-	if LookupTable.EdgeTable[cubeIndex] == 0:
-		return 0
-	
 	var edges := LookupTable.TriTable[cubeIndex]
 	var triCount := 0
 	var i := 0
