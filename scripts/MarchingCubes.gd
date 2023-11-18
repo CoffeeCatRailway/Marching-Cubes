@@ -76,12 +76,14 @@ func _ready() -> void:
 	print("Total triangles: %s" % [triCount])
 	
 	for i in triangles.size():
-		surfaceTool.set_normal(triangles[i].normal[0])
-		surfaceTool.add_vertex(triangles[i].vertices[0])
-		surfaceTool.set_normal(triangles[i].normal[1])
-		surfaceTool.add_vertex(triangles[i].vertices[1])
 		surfaceTool.set_normal(triangles[i].normal[2])
 		surfaceTool.add_vertex(triangles[i].vertices[2])
+		
+		surfaceTool.set_normal(triangles[i].normal[1])
+		surfaceTool.add_vertex(triangles[i].vertices[1])
+		
+		surfaceTool.set_normal(triangles[i].normal[0])
+		surfaceTool.add_vertex(triangles[i].vertices[0])
 	
 	surfaceTool.index()
 	meshInstance.mesh = surfaceTool.commit()
@@ -136,9 +138,9 @@ func polygoniseCube(grid: GridCell, iso: float, triangles: Array[Triangle]) -> i
 			triangles[triCount].normal[2] = triangles[triCount].vertices[2].normalized()
 		else:
 			var normal := (triangles[triCount].vertices[1] - triangles[triCount].vertices[0]).cross(triangles[triCount].vertices[2] - triangles[triCount].vertices[0])
-			triangles[triCount].normal[0] = -normal
-			triangles[triCount].normal[1] = -normal
-			triangles[triCount].normal[2] = -normal
+			triangles[triCount].normal[0] = normal
+			triangles[triCount].normal[1] = normal
+			triangles[triCount].normal[2] = normal
 		
 		triCount += 1
 		i += 3
