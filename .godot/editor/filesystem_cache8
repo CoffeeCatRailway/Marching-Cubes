@@ -1,0 +1,8 @@
+ea4bc82a6ad023ab7ee23ee620429895
+::res://::1700284149
+icon.svg::CompressedTexture2D::3802682477240791541::1700187387::1700187395::1::::<><>::
+::res://scenes/::1700284142
+marching_cubes.tscn::PackedScene::1249219743304847131::1700284142::0::1::::<><>::res://scripts/MarchingCubes.gd
+::res://scripts/::1700284132
+LookupTable.gd::GDScript::-1::1700282189::0::1::::<>Node<>::
+MarchingCubes.gd::GDScript::-1::1700284132::0::1::::Commandar<>Node<>::
