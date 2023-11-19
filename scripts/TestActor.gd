@@ -1,6 +1,5 @@
 extends CharacterBody3D
 
-@onready var rayDown := $RayCast3D
 @export var marchMesh: MeshInstance3D
 
 @export var speed := 15.

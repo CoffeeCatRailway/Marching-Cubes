@@ -9,9 +9,6 @@
 [node name="TestActor" type="CharacterBody3D"]
 script = ExtResource("1_nc6mc")
 
-[node name="RayCast3D" type="RayCast3D" parent="."]
-target_position = Vector3(0, -0.5, 0)
-
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 mesh = SubResource("CapsuleMesh_bitgi")
