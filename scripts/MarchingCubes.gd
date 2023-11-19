@@ -20,6 +20,7 @@ extends MeshInstance3D
 @export_group("Mesh settings")
 @export var smoothMesh: bool = true
 @export var smoothNormals: bool = false
+@export var gradient: Gradient
 
 @export_group("Noise settings")
 @export var useRandomSeed: bool = false
@@ -38,12 +39,15 @@ class GridCell:
 class Triangle:
 	var vertices: Array[Vector3] = []
 	var normal: Array[Vector3] = []
+	var color: Array[Color] = []
 	
 	func _init():
 		vertices.resize(3)
 		vertices.fill(Vector3.ZERO)
 		normal.resize(3)
 		normal.fill(Vector3.ZERO)
+		color.resize(3)
+		color.fill(Color.DIM_GRAY)
 
 func _ready() -> void:
 	if useRandomSeed:
@@ -83,19 +87,29 @@ func march() -> void:
 				triangles.resize(totalTriCount + triCount)
 				for i in triCount:
 					triangles[totalTriCount + i] = polys[i]
+					var colorIndex := (y + size) / 2. / size
+					triangles[totalTriCount + i].color[0] = gradient.sample(colorIndex)
+					triangles[totalTriCount + i].color[1] = gradient.sample(colorIndex)
+					triangles[totalTriCount + i].color[2] = gradient.sample(colorIndex)
 				totalTriCount += triCount
 	print("Triangles: %s" % [totalTriCount * 3])
 	
 	var surfaceTool := SurfaceTool.new()
 	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	
+	var material := StandardMaterial3D.new()
+	material.vertex_color_use_as_albedo = true
+	surfaceTool.set_material(material)
 	for i in triangles.size():
+		surfaceTool.set_color(triangles[i].color[2])
 		surfaceTool.set_normal(triangles[i].normal[2])
 		surfaceTool.add_vertex(triangles[i].vertices[2])
 		
+		surfaceTool.set_color(triangles[i].color[1])
 		surfaceTool.set_normal(triangles[i].normal[1])
 		surfaceTool.add_vertex(triangles[i].vertices[1])
 		
+		surfaceTool.set_color(triangles[i].color[0])
 		surfaceTool.set_normal(triangles[i].normal[0])
 		surfaceTool.add_vertex(triangles[i].vertices[0])
 	
