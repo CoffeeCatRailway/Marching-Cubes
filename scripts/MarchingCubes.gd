@@ -9,20 +9,21 @@ extends MeshInstance3D
 @export var clear: bool = false:
 	set(_value):
 		self.mesh = null
+		$StaticBody3D/CollisionShape3D.shape = null
 		clear = false
 
-@export var size: int = 20:
+@export var size: int = 40:
 	set(value):
-		size = maxi(1, absi(value))
+		size = max(1, abs(value))
 
 @export_group("Mesh settings")
-@export var smooth: bool = true
+@export var smoothMesh: bool = true
 @export var smoothNormals: bool = false
 
 @export_group("Noise settings")
 @export var useRandomSeed: bool = false
 @export var sphereical: bool = true
-@export var multiplier: float = 10.
+@export var multiplier: float = 20.
 @export var noise: FastNoiseLite
 
 class GridCell:
@@ -78,7 +79,7 @@ func _ready() -> void:
 				for i in triCount:
 					triangles[totalTriCount + i] = polys[i]
 				totalTriCount += triCount
-	print("Triangles: %s" % [totalTriCount])
+	print("Triangles: %s" % [totalTriCount * 3])
 	
 	var surfaceTool := SurfaceTool.new()
 	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -95,9 +96,8 @@ func _ready() -> void:
 	
 	surfaceTool.index()
 	self.mesh = surfaceTool.commit()
-	
-	#var surfaceArray: Array = mesh.surface_get_arrays(0)
-	print("Vertices: %s" % [mesh.get_faces().size() / 3])#surfaceArray[Mesh.ARRAY_VERTEX]
+	$StaticBody3D/CollisionShape3D.shape = self.mesh.create_trimesh_shape()
+	print("Vertices: %s" % [totalTriCount])
 	
 	#generateSphere()
 	
@@ -106,16 +106,13 @@ func _ready() -> void:
 		print("%s: Cube march took %s seconds" % [name, float(timeElapsed) / 100])
 
 func calcGridCellValue(pos: Vector3) -> float:
-	var noiseVal: float
-	if smooth:
+	var noiseVal := -1. if noise.get_noise_3dv(pos) < 0. else 1.
+	if smoothMesh:
 		noiseVal = noise.get_noise_3dv(pos)
-	else:
-		noiseVal = -1. if noise.get_noise_3dv(pos) < 0. else 1.
 	
 	if sphereical:
 		return (size / 2.) - pos.length() + noiseVal * multiplier
-	else:
-		return noiseVal * multiplier
+	return -pos.y + noiseVal * multiplier# + fmod(pos.y, 2.) # Add 'pos.y % terraceHeight' for terracing
 
 # Given a grid cell and an isoLevel, calcularte the triangular facets requied to represent the isosurface through the cell.
 # Return the number of triangular facets, array "triangles" will be loaded up with the vertices at most 5 triangular facets.
