@@ -6,6 +6,9 @@ extends CharacterBody3D
 
 var isMoving := false
 var originalPos := Vector3.ZERO
+var vieSensitivity := .3
+var pitch := 0.
+var yaw := 0.
 
 const Accel := 2.
 const Deaccel := 4.
@@ -14,16 +17,38 @@ const Gravity := 9.8 * 3.
 func _ready() -> void:
 	originalPos = global_transform.origin
 
+func _input(event) -> void:
+	if event is InputEventMouseMotion:
+		pitch = max(min(pitch - (event as InputEventMouseMotion).relative.y * vieSensitivity, 90.), -90.)
+		yaw = fmod(yaw - (event as InputEventMouseMotion).relative.x * vieSensitivity, 360.)
+		$Camera3D.rotation.x = deg_to_rad(pitch)
+		$Camera3D.rotation.y = deg_to_rad(yaw)
+	if event is InputEventKey:
+		if event.is_action_released("ui_home"):
+			global_transform.origin = originalPos
+		if event.is_action_released("game_quit"):
+			get_tree().quit()
+
+func _enter_tree() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _exit_tree() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
 func _physics_process(delta) -> void:
-	if Input.is_action_just_released("ui_home"):
-		global_transform.origin = originalPos
-	
+	var aim = $Camera3D.global_transform.basis
 	var moveDir := Vector3.ZERO
-	moveDir.x += Input.get_axis("ui_left", "ui_right")
-	moveDir.z += Input.get_axis("ui_up", "ui_down")
+	if Input.is_action_pressed("move_forward"):
+		moveDir -= aim[2]
+	if Input.is_action_pressed("move_backward"):
+		moveDir += aim[2]
+	if Input.is_action_pressed("move_left"):
+		moveDir -= aim[0]
+	if Input.is_action_pressed("move_right"):
+		moveDir += aim[0]
 	
-	isMoving = moveDir.length() > 0. # Reset flag for movement
 	moveDir = moveDir.normalized()
+	isMoving = moveDir.length() > 0. # Reset flag for movement
 	
 	# Add gravity
 	velocity.y -= Gravity * delta
@@ -45,7 +70,6 @@ func _physics_process(delta) -> void:
 	
 	# Move the node
 	move_and_slide()
-	
 
 
 
