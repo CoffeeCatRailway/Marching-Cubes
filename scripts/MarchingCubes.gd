@@ -4,8 +4,9 @@ extends MeshInstance3D
 
 @export var generate: bool = false:
 	set(_value):
-		_ready()
+		march()
 		generate = false
+@export var generateOnStart: bool = false
 @export var clear: bool = false:
 	set(_value):
 		self.mesh = null
@@ -50,6 +51,10 @@ func _ready() -> void:
 		rng.randomize()
 		noise.seed = rng.randi()
 	
+	if generateOnStart:
+		march()
+
+func march() -> void:
 	# Sample density (noise) & create GridCell object
 	# Pass GridCell into polygoniseCube, construct triangles
 	# Pass triangles into surfaceTool
