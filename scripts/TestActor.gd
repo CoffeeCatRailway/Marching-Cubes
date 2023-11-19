@@ -9,6 +9,7 @@ var originalPos := Vector3.ZERO
 var vieSensitivity := .3
 var pitch := 0.
 var yaw := 0.
+var mouseModeToggle := true # false is visible
 
 const Accel := 2.
 const Deaccel := 4.
@@ -19,15 +20,20 @@ func _ready() -> void:
 
 func _input(event) -> void:
 	if event is InputEventMouseMotion:
-		pitch = max(min(pitch - (event as InputEventMouseMotion).relative.y * vieSensitivity, 90.), -90.)
-		yaw = fmod(yaw - (event as InputEventMouseMotion).relative.x * vieSensitivity, 360.)
-		$Camera3D.rotation.x = deg_to_rad(pitch)
-		$Camera3D.rotation.y = deg_to_rad(yaw)
+		if mouseModeToggle:
+			pitch = max(min(pitch - (event as InputEventMouseMotion).relative.y * vieSensitivity, 90.), -90.)
+			yaw = fmod(yaw - (event as InputEventMouseMotion).relative.x * vieSensitivity, 360.)
+			$Camera3D.rotation.x = deg_to_rad(pitch)
+			$Camera3D.rotation.y = deg_to_rad(yaw)
 	if event is InputEventKey:
 		if event.is_action_released("ui_home"):
 			global_transform.origin = originalPos
 		if event.is_action_released("game_quit"):
-			get_tree().quit()
+			mouseModeToggle = !mouseModeToggle
+			if mouseModeToggle:
+				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			else:
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _enter_tree() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
