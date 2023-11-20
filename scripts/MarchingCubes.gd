@@ -23,7 +23,10 @@ extends MeshInstance3D
 @export var gradient: Gradient
 
 @export_group("Noise settings")
-@export var useRandomSeed: bool = false
+@export var useRandomSeed: bool = false:
+	set(value):
+		useRandomSeed = value
+		randomiseNoise()
 @export var sphereical: bool = true
 @export var multiplier: float = 20.
 @export var noise: FastNoiseLite
@@ -51,13 +54,15 @@ class Triangle:
 		color.fill(Color.DIM_GRAY)
 
 func _ready() -> void:
+	randomiseNoise()
+	if generateOnStart:
+		march()
+
+func randomiseNoise() -> void:
 	if useRandomSeed:
 		var rng := RandomNumberGenerator.new()
 		rng.randomize()
 		noise.seed = rng.randi()
-	
-	if generateOnStart:
-		march()
 		noiseMask.seed = rng.randi()
 
 func march() -> void:
