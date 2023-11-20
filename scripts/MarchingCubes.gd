@@ -139,9 +139,6 @@ func march() -> void:
 
 func calcGridCellValue(pos: Vector3) -> float:
 	var noiseVal := noise.get_noise_3dv(pos) + noiseMask.get_noise_3dv(pos)
-	if !smoothMesh:
-		noiseVal = -1. if noiseVal < 0. else 1.
-	
 	if sphereical:
 		return (size.x / 2.) - pos.length() + noiseVal * multiplier
 	return -pos.y + noiseVal * multiplier# + fmod(pos.y, 2.) # Add 'pos.y % terraceHeight' for terracing
@@ -178,9 +175,14 @@ func polygoniseCube(grid: GridCell, iso: float, triangles: Array[Triangle]) -> i
 		var e21: int = LookupTable.EdgeConnections[edges[i + 2]][1]
 		
 		triangles[triCount] = Triangle.new()
-		triangles[triCount].vertices[0] = vertexInterp(iso, LookupTable.CornerOffsets[e00], LookupTable.CornerOffsets[e01], grid.value[e00], grid.value[e01]) + grid.pos
-		triangles[triCount].vertices[1] = vertexInterp(iso, LookupTable.CornerOffsets[e10], LookupTable.CornerOffsets[e11], grid.value[e10], grid.value[e11]) + grid.pos
-		triangles[triCount].vertices[2] = vertexInterp(iso, LookupTable.CornerOffsets[e20], LookupTable.CornerOffsets[e21], grid.value[e20], grid.value[e21]) + grid.pos
+		if smoothMesh:
+			triangles[triCount].vertices[0] = vertexInterp(iso, LookupTable.CornerOffsets[e00], LookupTable.CornerOffsets[e01], grid.value[e00], grid.value[e01]) + grid.pos
+			triangles[triCount].vertices[1] = vertexInterp(iso, LookupTable.CornerOffsets[e10], LookupTable.CornerOffsets[e11], grid.value[e10], grid.value[e11]) + grid.pos
+			triangles[triCount].vertices[2] = vertexInterp(iso, LookupTable.CornerOffsets[e20], LookupTable.CornerOffsets[e21], grid.value[e20], grid.value[e21]) + grid.pos
+		else:
+			triangles[triCount].vertices[0] = (LookupTable.CornerOffsets[e00] + LookupTable.CornerOffsets[e01]) / 2. + grid.pos
+			triangles[triCount].vertices[1] = (LookupTable.CornerOffsets[e10] + LookupTable.CornerOffsets[e11]) / 2. + grid.pos
+			triangles[triCount].vertices[2] = (LookupTable.CornerOffsets[e20] + LookupTable.CornerOffsets[e21]) / 2. + grid.pos
 		
 		if smoothNormals:
 			triangles[triCount].normal[0] = triangles[triCount].vertices[0].normalized()
