@@ -27,6 +27,7 @@ extends MeshInstance3D
 @export var sphereical: bool = true
 @export var multiplier: float = 20.
 @export var noise: FastNoiseLite
+@export var noiseMask: FastNoiseLite
 
 class GridCell:
 	var pos := Vector3.ZERO
@@ -57,6 +58,7 @@ func _ready() -> void:
 	
 	if generateOnStart:
 		march()
+		noiseMask.seed = rng.randi()
 
 func march() -> void:
 	# Sample density (noise) & create GridCell object
@@ -125,9 +127,9 @@ func march() -> void:
 		print("%s: Cube march took %s seconds" % [name, float(timeElapsed) / 100])
 
 func calcGridCellValue(pos: Vector3) -> float:
-	var noiseVal := -1. if noise.get_noise_3dv(pos) < 0. else 1.
-	if smoothMesh:
-		noiseVal = noise.get_noise_3dv(pos)
+	var noiseVal := noise.get_noise_3dv(pos) + noiseMask.get_noise_3dv(pos)
+	if !smoothMesh:
+		noiseVal = -1. if noiseVal < 0. else 1.
 	
 	if sphereical:
 		return (size.x / 2.) - pos.length() + noiseVal * multiplier
