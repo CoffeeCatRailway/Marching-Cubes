@@ -13,9 +13,9 @@ extends MeshInstance3D
 		$StaticBody3D/CollisionShape3D.shape = null
 		clear = false
 
-@export var size: int = 40:
+@export var size: Vector2 = Vector2(60, 40):
 	set(value):
-		size = max(1, abs(value))
+		size = value.abs()
 
 @export_group("Mesh settings")
 @export var smoothMesh: bool = true
@@ -74,9 +74,9 @@ func march() -> void:
 	var triangles: Array[Triangle] = []
 	var totalTriCount := 0
 	
-	for x in range(-size, size):
-		for y in range(-size, size):
-			for z in range(-size, size):
+	for x in range(-size.x, size.x):
+		for y in range(-size.y, size.y):
+			for z in range(-size.x, size.x):
 				gridCell.pos.x = x
 				gridCell.pos.y = y
 				gridCell.pos.z = z
@@ -87,7 +87,7 @@ func march() -> void:
 				triangles.resize(totalTriCount + triCount)
 				for i in triCount:
 					triangles[totalTriCount + i] = polys[i]
-					var colorIndex := (y + size) / 2. / size
+					var colorIndex := (y + size.y) / 2. / size.y
 					triangles[totalTriCount + i].color[0] = gradient.sample(colorIndex)
 					triangles[totalTriCount + i].color[1] = gradient.sample(colorIndex)
 					triangles[totalTriCount + i].color[2] = gradient.sample(colorIndex)
@@ -130,7 +130,7 @@ func calcGridCellValue(pos: Vector3) -> float:
 		noiseVal = noise.get_noise_3dv(pos)
 	
 	if sphereical:
-		return (size / 2.) - pos.length() + noiseVal * multiplier
+		return (size.x / 2.) - pos.length() + noiseVal * multiplier
 	return -pos.y + noiseVal * multiplier# + fmod(pos.y, 2.) # Add 'pos.y % terraceHeight' for terracing
 
 # Given a grid cell and an isoLevel, calcularte the triangular facets requied to represent the isosurface through the cell.
