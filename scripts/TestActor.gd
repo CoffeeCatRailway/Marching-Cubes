@@ -58,6 +58,8 @@ func _physics_process(delta) -> void:
 	
 	# Add gravity
 	velocity.y -= Gravity * delta
+	if Input.is_action_just_pressed("move_jump") && is_on_floor():
+		velocity.y += Gravity / 2.
 	
 	# Calculate target position to move
 	var target := moveDir * speed
