@@ -18,6 +18,7 @@ extends MeshInstance3D
 		size = value.abs()
 
 @export_group("Mesh settings")
+@export var isoLevel := 0.
 @export var smoothMesh: bool = true
 @export var smoothNormals: bool = false
 @export var gradient: Gradient
@@ -72,7 +73,6 @@ func march() -> void:
 	
 	var timeNow: int = Time.get_ticks_msec()
 	
-	var isoLevel := 0.
 	var gridCell := GridCell.new()
 	
 	var polys: Array[Triangle] = []
@@ -80,6 +80,9 @@ func march() -> void:
 	
 	var triangles: Array[Triangle] = []
 	var totalTriCount := 0
+	
+	var minV := 0.
+	var maxV := 0.
 	
 	for x in range(-size.x, size.x):
 		for y in range(-size.y, size.y):
@@ -89,6 +92,8 @@ func march() -> void:
 				gridCell.pos.z = z
 				for i in 8:
 					gridCell.value[i] = calcGridCellValue(gridCell.pos + LookupTable.CornerOffsets[i])
+					minV = min(minV, gridCell.value[i])
+					maxV = max(maxV, gridCell.value[i])
 				
 				var triCount := polygoniseCube(gridCell, isoLevel, polys)
 				triangles.resize(totalTriCount + triCount)
@@ -100,6 +105,7 @@ func march() -> void:
 					triangles[totalTriCount + i].color[2] = gradient.sample(colorIndex)
 				totalTriCount += triCount
 	print("Triangles: %s" % [totalTriCount * 3])
+	print("Min/max values: %s/%s" % [minV, maxV])
 	
 	var surfaceTool := SurfaceTool.new()
 	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
