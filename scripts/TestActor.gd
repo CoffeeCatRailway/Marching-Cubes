@@ -17,7 +17,7 @@ const Gravity := 9.8 * 3.
 
 func _ready() -> void:
 	originalPos = global_transform.origin
-	floor_max_angle = 1.
+	floor_max_angle = floor_max_angle * 1.5
 
 func _input(event) -> void:
 	if event is InputEventMouseMotion:
