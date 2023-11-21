@@ -28,8 +28,9 @@ extends MeshInstance3D
 	set(value):
 		useRandomSeed = value
 		randomiseNoise()
-@export var sphereical: bool = true
-@export var multiplier: float = 20.
+@export var sphereical: bool = false
+@export var noiseMultiplier: float = 10.
+@export var noiseMaskMultiplier: float = 20.
 @export var noise: FastNoiseLite
 @export var noiseMask: FastNoiseLite
 
@@ -138,10 +139,10 @@ func march() -> void:
 		print("%s: Cube march took %s seconds" % [name, float(timeElapsed) / 100])
 
 func calcGridCellValue(pos: Vector3) -> float:
-	var noiseVal := noise.get_noise_3dv(pos) + noiseMask.get_noise_3dv(pos)
+	var noiseVal := noise.get_noise_3dv(pos) * noiseMultiplier + noiseMask.get_noise_3dv(pos) * noiseMaskMultiplier
 	if sphereical:
-		return (size.x / 2.) - pos.length() + noiseVal * multiplier
-	return -pos.y + noiseVal * multiplier# + fmod(pos.y, 2.) # Add 'pos.y % terraceHeight' for terracing
+		return (size.x / 2.) - pos.length() + noiseVal
+	return -pos.y + noiseVal# + fmod(pos.y, 4.) # Add 'pos.y % terraceHeight' for terracing
 
 # Given a grid cell and an isoLevel, calcularte the triangular facets requied to represent the isosurface through the cell.
 # Return the number of triangular facets, array "triangles" will be loaded up with the vertices at most 5 triangular facets.
