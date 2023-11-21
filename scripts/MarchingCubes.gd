@@ -81,7 +81,6 @@ func march() -> void:
 	
 	var triangles: Array[Triangle] = []
 	var totalTriCount := 0
-	
 	var minV := 0.
 	var maxV := 0.
 	
@@ -142,7 +141,7 @@ func march() -> void:
 		print("%s: Cube march took %s miliseconds" % [name, float(timeElapsed) / 100])
 
 func calcGridCellValue(pos: Vector3) -> float:
-	var noiseVal := noise.get_noise_3dv(pos) * noiseMultiplier + noiseMask.get_noise_3dv(pos) * noiseMaskMultiplier
+	var noiseVal := noise.get_noise_3dv(pos) * noiseMultiplier + absf(noiseMask.get_noise_3dv(pos) * noiseMaskMultiplier)
 	if sphereical:
 		return (size.x / 2.) - pos.length() + noiseVal
 	return -pos.y + noiseVal# + fmod(pos.y, 4.) # Add 'pos.y % terraceHeight' for terracing
