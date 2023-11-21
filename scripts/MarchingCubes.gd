@@ -97,6 +97,9 @@ func march() -> void:
 					maxV = max(maxV, gridCell.value[i])
 				
 				var triCount := polygoniseCube(gridCell, isoLevel, polys)
+				if triCount == 0:
+					continue
+				
 				triangles.resize(totalTriCount + triCount)
 				for i in triCount:
 					triangles[totalTriCount + i] = polys[i]
@@ -136,7 +139,7 @@ func march() -> void:
 	
 	var timeElapsed: int = Time.get_ticks_msec() - timeNow
 	if OS.is_debug_build():
-		print("%s: Cube march took %s seconds" % [name, float(timeElapsed) / 100])
+		print("%s: Cube march took %s miliseconds" % [name, float(timeElapsed) / 100])
 
 func calcGridCellValue(pos: Vector3) -> float:
 	var noiseVal := noise.get_noise_3dv(pos) * noiseMultiplier + noiseMask.get_noise_3dv(pos) * noiseMaskMultiplier
@@ -158,6 +161,9 @@ func polygoniseCube(grid: GridCell, iso: float, triangles: Array[Triangle]) -> i
 	if grid.value[5] < iso: cubeIndex |= 32
 	if grid.value[6] < iso: cubeIndex |= 64
 	if grid.value[7] < iso: cubeIndex |= 128
+	
+	if cubeIndex == 0 || cubeIndex == 255:
+		return 0
 	
 	var edges := LookupTable.TriTable[cubeIndex]
 	var triCount := 0
