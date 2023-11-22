@@ -1,7 +1,7 @@
 extends CharacterBody3D
 
 @export var speed := 15.
-@export var hasGravity := true
+@export var flying := false
 
 var isMoving := false
 var originalPos := Vector3.ZERO
@@ -57,7 +57,7 @@ func _physics_process(delta) -> void:
 	isMoving = moveDir.length() > 0. # Reset flag for movement
 	
 	# Add gravity
-	if hasGravity:
+	if !flying:
 		velocity.y -= Gravity * delta
 		if Input.is_action_just_pressed("move_jump") && is_on_floor():
 			velocity.y += Gravity / 2.
@@ -69,13 +69,16 @@ func _physics_process(delta) -> void:
 	if isMoving:
 		accel = Accel
 	
-	# Calculate the horizontal velocity to move toward the target
-	var hvel := velocity
-	hvel.y = 0.
-	
-	hvel = hvel.lerp(target, accel * delta)
-	velocity.x = hvel.x
-	velocity.z = hvel.z
+	if !flying:
+		# Calculate the horizontal velocity to move toward the target
+		var hvel := velocity
+		hvel.y = 0.
+		
+		hvel = hvel.lerp(target, accel * delta)
+		velocity.x = hvel.x
+		velocity.z = hvel.z
+	else:
+		velocity = velocity.lerp(target, accel * delta)
 	
 	# Move the node
 	move_and_slide()
