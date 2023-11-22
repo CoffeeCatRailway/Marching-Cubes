@@ -11,14 +11,15 @@ config_version=5
 [application]
 
 config/name="Marching Cubes"
-run/main_scene="res://scenes/marching_cubes.tscn"
+run/main_scene="res://scenes/marching_cubes_test.tscn"
 config/features=PackedStringArray("4.1", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
-LookupTable="*res://scripts/LookupTable.gd"
+LookupTable="*res://scripts/marching_cubes/LookupTable.gd"
 WorldSaver="*res://scripts/world/WorldSaver.gd"
+Marcher="*res://scripts/marching_cubes/Marcher.gd"
 
 [dotnet]
 

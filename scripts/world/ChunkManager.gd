@@ -7,7 +7,23 @@ extends Node3D
 # Instanced for every chunk that hasn't been loaded
 const chunkNode := preload("res://scenes/chunk.tscn")
 
+@export var generateCollision := true
+@export var marcherSettings: MarcherSettings
+
+@export_group("Noise settings")
+@export var useRandomSeed: bool = false:
+	set(value):
+		useRandomSeed = value
+		#randomiseNoise()
+@export var noiseMultiplier: float = 10.
+@export var noiseMaskMultiplier: float = 20.
+@export var noiseTunnelMultiplier: float = 2.
+@export var noise: FastNoiseLite
+@export var noiseMask: FastNoiseLite
+@export var noiseTunnel: FastNoiseLite
+
 # Reference player to track location
+@export_group("")
 @export_node_path() var playerPath
 var player: Node
 
@@ -26,9 +42,29 @@ var chunkLoaded := false
 
 # Checks if the chunks within the render distance have been loaded
 func _ready() -> void:
+	randomiseNoise()
+	marcherSettings.noiseFunc = Callable(self, "noiseFunc")
+	
 	player = get_node(playerPath)
 	currentChunkPos = _getPlayerChunk(player.global_position)
 	loadChunk()
+
+func randomiseNoise() -> void:
+	if useRandomSeed:
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		noise.seed = rng.randi()
+		noiseMask.seed = rng.randi()
+		noiseTunnel.seed = rng.randi()
+
+func noiseFunc(pos: Vector3) -> float:
+	var noiseVal: float = 0.
+	noiseVal += noise.get_noise_3dv(pos) * noiseMultiplier
+	noiseVal += absf(noiseMask.get_noise_3dv(pos) * noiseMaskMultiplier)
+	
+	if (-pos.y) + noiseVal > (noiseMultiplier + noiseMaskMultiplier) / 21.:
+		noiseVal *= noiseTunnel.get_noise_3dv(pos) * noiseTunnelMultiplier
+	return (-pos.y) + noiseVal# + fmod(pos.y, 4.) # Add 'pos.y % terraceHeight' for terracing
 
 func _process(_delta) -> void:
 	currentChunkPos = _getPlayerChunk(player.global_position)
@@ -75,8 +111,9 @@ func loadChunk() -> void:
 				chunk.position.z = chunkCoords.z * chunkSize.x
 				activeChunks.append(chunk)
 				activeCoords.append(chunkCoords)
-				chunk.setup(true, chunkKey)
+				chunk.setup(generateCollision, chunkKey, chunkSize, marcherSettings)
 				add_child(chunk)
+				print("Chunk ", chunkKey)
 	
 	# Delete inactive (out of render distance) chunks
 	var deletingChunks = []

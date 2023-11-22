@@ -4,7 +4,7 @@ extends Node3D
 var chunkCoord: Vector3i
 var chunkData: Array = []
 
-func setup(generateCollisionShape: bool, _chunkCoord: Vector3i) -> void:
+func setup(generateCollisionShape: bool, _chunkCoord: Vector3i, chunkSize: Vector2, marcherSettings: MarcherSettings) -> void:
 	chunkCoord = _chunkCoord
 	var meshInstance: MeshInstance3D = $MeshInstance3D
 	var collisionShape: CollisionShape3D = $MeshInstance3D/StaticBody3D/CollisionShape3D
@@ -13,10 +13,11 @@ func setup(generateCollisionShape: bool, _chunkCoord: Vector3i) -> void:
 		chunkData.resize(2)
 		
 		# Generate mesh
-		meshInstance.mesh = BoxMesh.new()
-		var mat = StandardMaterial3D.new()
-		mat.albedo_color = Color(randf_range(.3, 1.), randf_range(.3, 1.), randf_range(.3, 1.))
-		(meshInstance.mesh as BoxMesh).material = mat
+		#meshInstance.mesh = BoxMesh.new()
+		#var mat = StandardMaterial3D.new()
+		#mat.albedo_color = Color(randf_range(.3, 1.), randf_range(.3, 1.), randf_range(.3, 1.))
+		#(meshInstance.mesh as BoxMesh).material = mat
+		meshInstance.mesh = Marcher.march(position, chunkSize, marcherSettings)
 		chunkData[0] = meshInstance.mesh
 		
 		# Generate collision shape

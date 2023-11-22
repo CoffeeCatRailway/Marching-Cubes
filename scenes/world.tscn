@@ -1,14 +1,59 @@
-[gd_scene load_steps=3 format=3 uid="uid://cwdjkeklfejlw"]
+[gd_scene load_steps=9 format=3 uid="uid://cwdjkeklfejlw"]
 
 [ext_resource type="Script" path="res://scripts/world/ChunkManager.gd" id="1_ucbca"]
+[ext_resource type="Script" path="res://scripts/marching_cubes/MarcherSettings.gd" id="2_4ghey"]
 [ext_resource type="PackedScene" uid="uid://dgsoamvsdubea" path="res://scenes/test_actor.tscn" id="2_mps6m"]
+
+[sub_resource type="Gradient" id="Gradient_2ugnc"]
+interpolation_mode = 2
+offsets = PackedFloat32Array(0.231788, 0.291391, 0.490066, 0.596026, 0.655629, 1)
+colors = PackedColorArray(0.156037, 0.106529, 0.156049, 1, 0.231373, 0.164706, 0.231373, 1, 0.303233, 0.303233, 0.303233, 1, 0.50579, 0.234801, 9.62615e-08, 1, 0.0980392, 0.4, 0, 1, 1, 1, 1, 1)
+
+[sub_resource type="Resource" id="Resource_q5utm"]
+resource_name = "Settings"
+script = ExtResource("2_4ghey")
+isoLevel = 0.0
+smoothMesh = true
+smoothNormals = false
+gradient = SubResource("Gradient_2ugnc")
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_bvt55"]
+seed = 2131076668
+frequency = 0.04
+fractal_type = 2
+fractal_octaves = 3
+fractal_lacunarity = 1.5
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_ehd5b"]
+noise_type = 0
+seed = -1184963623
+fractal_type = 0
+fractal_octaves = 1
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_hyg32"]
+noise_type = 0
+frequency = 0.035
+fractal_type = 2
+fractal_octaves = 3
+fractal_gain = 0.35
+domain_warp_amplitude = 46.025
+domain_warp_frequency = 0.35
 
 [node name="World" type="Node3D"]
 
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, 0.5, -0.5, 0, 0.707107, 0.707107, 0.707107, -0.5, 0.5, 0, 0, 0)
+
 [node name="ChunkManager" type="Node3D" parent="."]
 script = ExtResource("1_ucbca")
+marcherSettings = SubResource("Resource_q5utm")
+noiseMaskMultiplier = 40.0
+noise = SubResource("FastNoiseLite_bvt55")
+noiseMask = SubResource("FastNoiseLite_ehd5b")
+noiseTunnel = SubResource("FastNoiseLite_hyg32")
 playerPath = NodePath("../TestActor")
+renderDistance = 4
+chunkSize = Vector2(10, 40)
 
 [node name="TestActor" parent="." instance=ExtResource("2_mps6m")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 2)
-hasGravity = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, 0)

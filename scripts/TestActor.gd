@@ -1,7 +1,5 @@
 extends CharacterBody3D
 
-@export var marchMesh: MeshInstance3D
-
 @export var speed := 15.
 @export var hasGravity := true
 
