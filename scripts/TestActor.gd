@@ -3,6 +3,7 @@ extends CharacterBody3D
 @export var marchMesh: MeshInstance3D
 
 @export var speed := 15.
+@export var hasGravity := true
 
 var isMoving := false
 var originalPos := Vector3.ZERO
@@ -58,9 +59,10 @@ func _physics_process(delta) -> void:
 	isMoving = moveDir.length() > 0. # Reset flag for movement
 	
 	# Add gravity
-	velocity.y -= Gravity * delta
-	if Input.is_action_just_pressed("move_jump") && is_on_floor():
-		velocity.y += Gravity / 2.
+	if hasGravity:
+		velocity.y -= Gravity * delta
+		if Input.is_action_just_pressed("move_jump") && is_on_floor():
+			velocity.y += Gravity / 2.
 	
 	# Calculate target position to move
 	var target := moveDir * speed

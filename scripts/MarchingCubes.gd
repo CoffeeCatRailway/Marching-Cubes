@@ -31,8 +31,10 @@ extends MeshInstance3D
 @export var sphereical: bool = false
 @export var noiseMultiplier: float = 10.
 @export var noiseMaskMultiplier: float = 20.
+@export var noiseTunnelMultiplier: float = 2.
 @export var noise: FastNoiseLite
 @export var noiseMask: FastNoiseLite
+@export var noiseTunnel: FastNoiseLite
 
 class GridCell:
 	var pos := Vector3.ZERO
@@ -138,13 +140,19 @@ func march() -> void:
 	
 	var timeElapsed: int = Time.get_ticks_msec() - timeNow
 	if OS.is_debug_build():
-		print("%s: Cube march took %s miliseconds" % [name, float(timeElapsed) / 100])
+		print("%s: Cube march took %s seconds" % [name, float(timeElapsed) / 100.])
 
 func calcGridCellValue(pos: Vector3) -> float:
-	var noiseVal := noise.get_noise_3dv(pos) * noiseMultiplier + absf(noiseMask.get_noise_3dv(pos) * noiseMaskMultiplier)
+	var noiseVal: float = 0.
+	noiseVal += noise.get_noise_3dv(pos) * noiseMultiplier
+	noiseVal += absf(noiseMask.get_noise_3dv(pos) * noiseMaskMultiplier)
+	
+	if (-pos.y) + noiseVal > (noiseMultiplier + noiseMaskMultiplier) / 21.:
+		noiseVal *= noiseTunnel.get_noise_3dv(pos) * noiseTunnelMultiplier
+	
 	if sphereical:
 		return (size.x / 2.) - pos.length() + noiseVal
-	return -pos.y + noiseVal# + fmod(pos.y, 4.) # Add 'pos.y % terraceHeight' for terracing
+	return (-pos.y) + noiseVal# + fmod(pos.y, 4.) # Add 'pos.y % terraceHeight' for terracing
 
 # Given a grid cell and an isoLevel, calcularte the triangular facets requied to represent the isosurface through the cell.
 # Return the number of triangular facets, array "triangles" will be loaded up with the vertices at most 5 triangular facets.

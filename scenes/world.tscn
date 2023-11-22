@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://cwdjkeklfejlw"]
+
+[ext_resource type="Script" path="res://scripts/world/ChunkManager.gd" id="1_ucbca"]
+[ext_resource type="PackedScene" uid="uid://dgsoamvsdubea" path="res://scenes/test_actor.tscn" id="2_mps6m"]
+
+[node name="World" type="Node3D"]
+
+[node name="ChunkManager" type="Node3D" parent="."]
+script = ExtResource("1_ucbca")
+playerPath = NodePath("../TestActor")
+
+[node name="TestActor" parent="." instance=ExtResource("2_mps6m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 2)
+hasGravity = false
