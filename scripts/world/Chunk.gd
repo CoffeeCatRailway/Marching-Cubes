@@ -13,10 +13,6 @@ func setup(generateCollisionShape: bool, _chunkCoord: Vector3i, chunkSize: Vecto
 		chunkData.resize(2)
 		
 		# Generate mesh
-		#meshInstance.mesh = BoxMesh.new()
-		#var mat = StandardMaterial3D.new()
-		#mat.albedo_color = Color(randf_range(.3, 1.), randf_range(.3, 1.), randf_range(.3, 1.))
-		#(meshInstance.mesh as BoxMesh).material = mat
 		meshInstance.mesh = Marcher.march(position, chunkSize, marcherSettings)
 		chunkData[0] = meshInstance.mesh
 		

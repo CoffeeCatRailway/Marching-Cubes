@@ -1,3 +1,4 @@
+@tool
 #class_name Marcher
 extends Node
 
@@ -22,7 +23,7 @@ class Triangle:
 		color.resize(3)
 		color.fill(Color.DIM_GRAY)
 
-func march(pos: Vector3, size: Vector2, settings: MarcherSettings) -> Mesh:
+func march(pos: Vector3, size: Vector2, settings: MarcherSettings, debugInfo: bool = false) -> Mesh:
 	var gridCell := GridCell.new()
 	
 	var polys: Array[Triangle] = []
@@ -41,8 +42,9 @@ func march(pos: Vector3, size: Vector2, settings: MarcherSettings) -> Mesh:
 				gridCell.pos.z = z
 				for i in 8:
 					gridCell.value[i] = settings.noiseFunc.call(gridCell.pos + pos + LookupTable.CornerOffsets[i])
-					minV = min(minV, gridCell.value[i])
-					maxV = max(maxV, gridCell.value[i])
+					if debugInfo:
+						minV = min(minV, gridCell.value[i])
+						maxV = max(maxV, gridCell.value[i])
 				
 				var triCount := polygoniseCube(gridCell, settings.isoLevel, polys, settings.smoothMesh, settings.smoothNormals)
 				if triCount == 0:
@@ -56,6 +58,9 @@ func march(pos: Vector3, size: Vector2, settings: MarcherSettings) -> Mesh:
 					triangles[totalTriCount + i].color[1] = settings.gradient.sample(colorIndex)
 					triangles[totalTriCount + i].color[2] = settings.gradient.sample(colorIndex)
 				totalTriCount += triCount
+	if debugInfo:
+		print("Triangles: %s" % [totalTriCount])
+		print("Min/max values: %s/%s" % [minV, maxV])
 	
 	var surfaceTool := SurfaceTool.new()
 	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -77,6 +82,8 @@ func march(pos: Vector3, size: Vector2, settings: MarcherSettings) -> Mesh:
 		surfaceTool.add_vertex(triangles[i].vertices[0])
 	
 	surfaceTool.index()
+	if debugInfo:
+		print("Vertices: %s" % [totalTriCount * 3])
 	return surfaceTool.commit()
 
 

@@ -1,4 +1,3 @@
-#@tool
 class_name ChunkManager
 extends Node3D
 ## Chunk loading system based on https://github.com/NesiAwesomeneess/ChunkLoader/tree/main
@@ -14,7 +13,6 @@ const chunkNode := preload("res://scenes/chunk.tscn")
 @export var useRandomSeed: bool = false:
 	set(value):
 		useRandomSeed = value
-		#randomiseNoise()
 @export var noiseMultiplier: float = 10.
 @export var noiseMaskMultiplier: float = 20.
 @export var noiseTunnelMultiplier: float = 2.
