@@ -13,6 +13,7 @@ const chunkNode := preload("res://scenes/chunk.tscn")
 @export var useRandomSeed: bool = false:
 	set(value):
 		useRandomSeed = value
+@export var seed: String = "0"
 @export var noiseMultiplier: float = 10.
 @export var noiseMaskMultiplier: float = 20.
 @export var noiseTunnelMultiplier: float = 2.
@@ -44,12 +45,18 @@ func _ready() -> void:
 	loadChunk()
 
 func randomiseNoise() -> void:
+	var rng := RandomNumberGenerator.new()
 	if useRandomSeed:
-		var rng := RandomNumberGenerator.new()
 		rng.randomize()
-		noise.seed = rng.randi()
-		noiseMask.seed = rng.randi()
-		noiseTunnel.seed = rng.randi()
+	else:
+		if seed.is_valid_int():
+			rng.seed = int(seed)
+		else:
+			rng.seed = seed.hash()
+	print("%s: Seed: %s" % [name, rng.seed])
+	noise.seed = rng.randi()
+	noiseMask.seed = rng.randi()
+	noiseTunnel.seed = rng.randi()
 
 func noiseFunc(pos: Vector3) -> float:
 	var noiseVal: float = 0.

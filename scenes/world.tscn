@@ -18,7 +18,7 @@ smoothNormals = false
 gradient = SubResource("Gradient_2ugnc")
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_bvt55"]
-seed = 2131076668
+seed = 881477183
 frequency = 0.04
 fractal_type = 2
 fractal_octaves = 3
@@ -26,12 +26,13 @@ fractal_lacunarity = 1.5
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_ehd5b"]
 noise_type = 0
-seed = -1184963623
+seed = 1327520283
 fractal_type = 0
 fractal_octaves = 1
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_hyg32"]
 noise_type = 0
+seed = 692503688
 frequency = 0.035
 fractal_type = 2
 fractal_octaves = 3
