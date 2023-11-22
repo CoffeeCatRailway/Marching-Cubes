@@ -52,8 +52,7 @@ noise = SubResource("FastNoiseLite_bvt55")
 noiseMask = SubResource("FastNoiseLite_ehd5b")
 noiseTunnel = SubResource("FastNoiseLite_hyg32")
 playerPath = NodePath("../TestActor")
-renderDistance = 4
-chunkSize = Vector2(10, 40)
+chunkSize = Vector2(10, 60)
 
 [node name="TestActor" parent="." instance=ExtResource("2_mps6m")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, 0)

@@ -31,10 +31,6 @@ var currentChunkPos := Vector3i.ZERO
 var previousChunkPos := Vector3i.ZERO
 var chunkLoaded := false
 
-# 'revolutionDistance' is the distance whish the player must move in order for one revolution
-@export var circumnavigation := false
-@export var revolutionDistance: float = 8.
-
 @onready var activeCoords: Array[Vector3i] = []
 @onready var activeChunks: Array[Chunk] = []
 
@@ -97,8 +93,6 @@ func loadChunk() -> void:
 			var dz = (z + 1.) - round(renderBounds / 2.) + currentChunkPos.z
 			
 			var chunkCoords = Vector3i(dx, 0, dz)
-			# the chunk key is what's used to retreive data from WorldSaver
-			var chunkKey = _getChunkKey(chunkCoords)
 			loadingCoord.append(chunkCoords)
 			
 			# 'loadingCoord' stores the coords that are in the new chunk(s)
@@ -109,9 +103,9 @@ func loadChunk() -> void:
 				chunk.position.z = chunkCoords.z * chunkSize.x
 				activeChunks.append(chunk)
 				activeCoords.append(chunkCoords)
-				chunk.setup(generateCollision, chunkKey, chunkSize, marcherSettings)
+				chunk.setup(generateCollision, chunkCoords, chunkSize, marcherSettings)
 				add_child(chunk)
-				print("Chunk ", chunkKey)
+				print("%s: Chunk %s generated" % [name, chunkCoords])
 	
 	# Delete inactive (out of render distance) chunks
 	var deletingChunks = []
@@ -124,14 +118,6 @@ func loadChunk() -> void:
 		activeChunks.remove_at(i)
 		activeCoords.remove_at(i)
 	chunkLoaded = true
-
-# Converts chunk coords to it's key, this is for the circumnaviation thingy
-func _getChunkKey(coords: Vector3i) -> Vector3i:
-	var key = coords
-	if !circumnavigation:
-		return key
-	key.x = wrapf(coords.x, -revolutionDistance, revolutionDistance + 1.)
-	return key
 
 
 
