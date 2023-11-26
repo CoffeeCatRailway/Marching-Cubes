@@ -6,9 +6,15 @@ class GridCell:
 	var pos := Vector3.ZERO
 	var value: Array[float] = []
 	
-	func _init():
-		value.resize(8)
-		value.fill(0.)
+	func _init(_pos: Vector3 = Vector3.ZERO, _value: Array[float] = []):
+		pos = _pos
+		value = _value
+		if value.size() == 0 || value.is_empty():
+			value.resize(8)
+			value.fill(0.)
+	
+	func _to_string() -> String:
+		return "GridCell(pos=Vector3%s, value=%s)" % [pos, value]
 
 class Triangle:
 	var vertices: Array[Vector3] = []
@@ -23,8 +29,10 @@ class Triangle:
 		color.resize(3)
 		color.fill(Color.DIM_GRAY)
 
-func march(pos: Vector3, size: Vector2, settings: MarcherSettings, debugInfo: bool = false) -> Mesh:
-	var gridCell := GridCell.new()
+func march(pos: Vector3, size: Vector2, settings: MarcherSettings, debugInfo: bool = false, gridCells: Array[GridCell] = []) -> Dictionary:
+	var generateGridValues := gridCells.size() == 0 || gridCells.is_empty()
+	if generateGridValues:
+		gridCells.resize(size.x * size.y * 2 * size.x)
 	
 	var polys: Array[Triangle] = []
 	polys.resize(10)
@@ -35,16 +43,24 @@ func march(pos: Vector3, size: Vector2, settings: MarcherSettings, debugInfo: bo
 	var maxV := 0.
 	
 	for x in range(size.x):
-		for y in range(-size.y, size.y):
+		for y in range(-size.y, size.y): # size.y=10, -10 to 9, y+size.y = 0 to 19
 			for z in range(size.x):
-				gridCell.pos.x = x
-				gridCell.pos.y = y
-				gridCell.pos.z = z
-				for i in 8:
-					gridCell.value[i] = settings.noiseFunc.call(gridCell.pos + pos + LookupTable.CornerOffsets[i])
-					if debugInfo:
-						minV = min(minV, gridCell.value[i])
-						maxV = max(maxV, gridCell.value[i])
+				var gridCell: GridCell
+				var index = z * size.x * size.y * 2 + (y + size.y) * size.x + x
+				
+				if generateGridValues:
+					gridCell = GridCell.new()
+					gridCell.pos.x = x
+					gridCell.pos.y = y
+					gridCell.pos.z = z
+					for i in 8:
+						gridCell.value[i] = settings.noiseFunc.call(gridCell.pos + pos + LookupTable.CornerOffsets[i])
+						if debugInfo:
+							minV = min(minV, gridCell.value[i])
+							maxV = max(maxV, gridCell.value[i])
+					gridCells[index] = gridCell
+				else:
+					gridCell = gridCells[index]
 				
 				var triCount := polygoniseCube(gridCell, settings.isoLevel, polys, settings.smoothMesh, settings.smoothNormals)
 				if triCount == 0:
@@ -84,7 +100,10 @@ func march(pos: Vector3, size: Vector2, settings: MarcherSettings, debugInfo: bo
 	surfaceTool.index()
 	if debugInfo:
 		print("Vertices: %s" % [totalTriCount * 3])
-	return surfaceTool.commit()
+	return {
+		"mesh" = surfaceTool.commit(),
+		"gridCells" = gridCells
+	}
 
 
 # Given a grid cell and an isoLevel, calcularte the triangular facets requied to represent the isosurface through the cell.

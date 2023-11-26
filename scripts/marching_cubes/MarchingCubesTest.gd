@@ -75,7 +75,8 @@ func march() -> void:
 	
 	var timeNow: int = Time.get_ticks_msec()
 	
-	self.mesh = Marcher.march(Vector3.ZERO, size, marcherSettings, true)
+	var marched := Marcher.march(Vector3.ZERO, size, marcherSettings, true)
+	self.mesh = marched["mesh"]
 	$StaticBody3D/CollisionShape3D.shape = self.mesh.create_trimesh_shape()
 	
 	#generateSphere()

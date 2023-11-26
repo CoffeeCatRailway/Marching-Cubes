@@ -35,14 +35,22 @@ var chunkLoaded := false
 @onready var activeCoords: Array[Vector3i] = []
 @onready var activeChunks: Array[Chunk] = []
 
+var chunkThread: Thread # Make thread always running in background with queue of chunks to load
+
 # Checks if the chunks within the render distance have been loaded
 func _ready() -> void:
+	chunkThread = Thread.new()
+	
 	randomiseNoise()
 	marcherSettings.noiseFunc = Callable(self, "noiseFunc")
 	
 	player = get_node(playerPath)
 	currentChunkPos = _getPlayerChunk(player.global_position)
-	loadChunk()
+	#loadChunks()
+	chunkThread.start(Callable(self, "loadChunks"))
+
+func _exit_tree() -> void:
+	chunkThread.wait_to_finish()
 
 func randomiseNoise() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -71,7 +79,9 @@ func _process(_delta) -> void:
 	currentChunkPos = _getPlayerChunk(player.global_position)
 	if previousChunkPos != currentChunkPos:
 		if !chunkLoaded:
-			loadChunk()
+			#loadChunks()
+			if !chunkThread.is_alive():
+				chunkThread.start(Callable(self, "loadChunks"))
 	else:
 		chunkLoaded = false
 	previousChunkPos = currentChunkPos
@@ -87,7 +97,8 @@ func _getPlayerChunk(pos: Vector3) -> Vector3i:
 		chunkPos.z -= 1
 	return chunkPos
 
-func loadChunk() -> void:
+func loadChunks() -> void:
+	Thread.set_thread_safety_checks_enabled(false)
 	var renderBounds := (float(renderDistance) * 2.) + 1.
 	var loadingCoord: Array[Vector3i] = []
 	
@@ -106,12 +117,15 @@ func loadChunk() -> void:
 			# make sure only inactive coords are loaded
 			if activeCoords.find(chunkCoords) == -1:
 				var chunk = chunkNode.instantiate()
-				chunk.position.x = chunkCoords.x * chunkSize.x
-				chunk.position.z = chunkCoords.z * chunkSize.x
+				var chunkPos = Vector3(chunkCoords.x * chunkSize.x, 0., chunkCoords.z * chunkSize.x)
+				chunk.call_deferred("set_position", chunkPos)
+				#chunk.position.x = chunkCoords.x * chunkSize.x
+				#chunk.position.z = chunkCoords.z * chunkSize.x
 				activeChunks.append(chunk)
 				activeCoords.append(chunkCoords)
-				chunk.setup(generateCollision, chunkCoords, chunkSize, marcherSettings)
-				add_child(chunk)
+				chunk.setup(generateCollision, chunkPos, chunkCoords, chunkSize, marcherSettings)
+				#add_child(chunk)
+				call_deferred("add_child", chunk)
 	
 	# Delete inactive (out of render distance) chunks
 	var deletingChunks = []
@@ -124,8 +138,12 @@ func loadChunk() -> void:
 		activeChunks.remove_at(i)
 		activeCoords.remove_at(i)
 	chunkLoaded = true
+	
+	Thread.set_thread_safety_checks_enabled(true)
+	call_deferred("chunksLoaded")
 
-
+func chunksLoaded() -> void:
+	chunkThread.wait_to_finish()
 
 
 
