@@ -35,14 +35,21 @@ var chunkLoaded := false
 @onready var activeCoords: Array[Vector3i] = []
 @onready var activeChunks: Array[Chunk] = []
 
+var noiseCompute = preload("res://shaders/compute/noise_density.glsl")
+var computeWorker: ComputeWorker
+
 # Checks if the chunks within the render distance have been loaded
 func _ready() -> void:
 	randomiseNoise()
 	marcherSettings.noiseFunc = Callable(self, "noiseFunc")
 	
 	player = get_node(playerPath)
-	currentChunkPos = _getPlayerChunk(player.global_position)
-	loadChunk()
+	#currentChunkPos = _getPlayerChunk(player.global_position)
+	#loadChunk()
+	
+	computeWorker = $"/root/World/NoiseCompute"
+	computeWorker.shader_file = noiseCompute
+	computeWorker.initialize()
 
 func randomiseNoise() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -68,6 +75,19 @@ func noiseFunc(pos: Vector3) -> float:
 	return (-pos.y) + noiseVal# + fmod(pos.y, 4.) # Add 'pos.y % terraceHeight' for terracing
 
 func _process(_delta) -> void:
+	if Input.is_key_pressed(KEY_SPACE):
+		computeWorker.destroy()
+		computeWorker.shader_file = noiseCompute
+		computeWorker.initialize()
+	
+	if computeWorker.initialized && Input.is_action_just_released("ui_home"):
+		computeWorker.set_uniform_data(10, 1, 0, false) # points per axis
+		computeWorker.set_uniform_data(Vector3.ZERO, 2, 0, true) # position
+		
+		var points = computeWorker.get_uniform_by_binding(0)
+		print(points)
+	return
+	
 	currentChunkPos = _getPlayerChunk(player.global_position)
 	if previousChunkPos != currentChunkPos:
 		if !chunkLoaded:

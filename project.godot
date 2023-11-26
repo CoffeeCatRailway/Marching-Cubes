@@ -25,6 +25,10 @@ Marcher="*res://scripts/marching_cubes/Marcher.gd"
 
 project/assembly_name="Marching Cubes"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/ComputeWorker/plugin.cfg")
+
 [input]
 
 move_forward={

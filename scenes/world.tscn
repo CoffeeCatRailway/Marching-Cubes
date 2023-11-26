@@ -1,8 +1,11 @@
-[gd_scene load_steps=9 format=3 uid="uid://cwdjkeklfejlw"]
+[gd_scene load_steps=11 format=3 uid="uid://cwdjkeklfejlw"]
 
+[ext_resource type="Script" path="res://addons/ComputeWorker/ComputeWorker.gd" id="1_f3u2h"]
 [ext_resource type="Script" path="res://scripts/world/ChunkManager.gd" id="1_ucbca"]
 [ext_resource type="Script" path="res://scripts/marching_cubes/MarcherSettings.gd" id="2_4ghey"]
 [ext_resource type="PackedScene" uid="uid://dgsoamvsdubea" path="res://scenes/test_actor.tscn" id="2_mps6m"]
+
+[sub_resource type="RDShaderFile" id="RDShaderFile_tgiso"]
 
 [sub_resource type="Gradient" id="Gradient_2ugnc"]
 interpolation_mode = 2
@@ -44,6 +47,10 @@ domain_warp_frequency = 0.35
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707107, 0.5, -0.5, 0, 0.707107, 0.707107, 0.707107, -0.5, 0.5, 0, 0, 0)
+
+[node name="NoiseCompute" type="Node" parent="."]
+script = ExtResource("1_f3u2h")
+shader_file = SubResource("RDShaderFile_tgiso")
 
 [node name="ChunkManager" type="Node3D" parent="."]
 script = ExtResource("1_ucbca")
