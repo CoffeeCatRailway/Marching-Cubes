@@ -112,7 +112,6 @@ func loadChunk() -> void:
 				activeCoords.append(chunkCoords)
 				chunk.setup(generateCollision, chunkCoords, chunkSize, marcherSettings)
 				add_child(chunk)
-				print("%s: Chunk %s generated" % [name, chunkCoords])
 	
 	# Delete inactive (out of render distance) chunks
 	var deletingChunks = []
