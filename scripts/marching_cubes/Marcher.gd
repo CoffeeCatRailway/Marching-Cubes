@@ -1,63 +1,56 @@
 @tool
-#class_name Marcher
 extends Node
 
+var surfaceTool: SurfaceTool
+var material: StandardMaterial3D
+
 class GridCell:
-	var pos := Vector3.ZERO
-	var value: Array[float] = []
+	var pos: Vector3i
+	var value: Array[float]
 	
-	func _init(_pos: Vector3 = Vector3.ZERO, _value: Array[float] = []):
-		pos = _pos
+	func _init(x: int = 0, y: int = 0, z: int = 0, _value: Array[float] = [0., 0., 0., 0., 0., 0., 0., 0.]):
+		pos = Vector3i(x, y, z)
 		value = _value
-		if value.size() == 0 || value.is_empty():
-			value.resize(8)
-			value.fill(0.)
-	
-	func _to_string() -> String:
-		return "GridCell(pos=Vector3%s, value=%s)" % [pos, value]
 
 class Triangle:
-	var vertices: Array[Vector3] = []
-	var normal: Array[Vector3] = []
-	var color: Array[Color] = []
-	
-	func _init():
-		vertices.resize(3)
-		vertices.fill(Vector3.ZERO)
-		normal.resize(3)
-		normal.fill(Vector3.ZERO)
-		color.resize(3)
-		color.fill(Color.DIM_GRAY)
+	var vertices: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
+	var normal: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
+	var color: Array[Color] = [Color.DIM_GRAY, Color.DIM_GRAY, Color.DIM_GRAY]
 
-func march(pos: Vector3, size: Vector2, settings: MarcherSettings, debugInfo: bool = false, gridCells: Array[GridCell] = []) -> Dictionary:
-	var generateGridValues := gridCells.size() == 0 || gridCells.is_empty()
-	if generateGridValues:
-		gridCells.resize(size.x * size.y * 2 * size.x)
+func _ready() -> void:
+	surfaceTool = SurfaceTool.new()
+	material = StandardMaterial3D.new()
+	material.vertex_color_use_as_albedo = true
+
+func march(pos: Vector3, size: Vector3i, settings: MarcherSettings, gridCells: Array[GridCell] = []) -> Dictionary:
+	var timeNow: int
+	if pos == Vector3.ZERO:
+		timeNow = Time.get_ticks_msec()
+	
+	var genGridCells = gridCells.size() == 0
+	if genGridCells:
+		gridCells.resize(size.x * (size.y + size.z) * size.x)
 	
 	var polys: Array[Triangle] = []
 	polys.resize(10)
 	
 	var triangles: Array[Triangle] = []
 	var totalTriCount := 0
-	var minV := 0.
-	var maxV := 0.
 	
+	# size=(10,60,30), chunk is 10x90x10, 9000 iterations ~= 150 milliseconds
 	for x in range(size.x):
-		for y in range(-size.y, size.y): # size.y=10, -10 to 9, y+size.y = 0 to 19
+		for y in range(-size.z, size.y): # size.y=10, -10 to 9, y+size.y = 0 to 19
 			for z in range(size.x):
 				var gridCell: GridCell
-				var index = z * size.x * size.y * 2 + (y + size.y) * size.x + x
+				var index = z * size.x * (size.y + size.z) + y * size.x + x
+				if index >= gridCells.size():
+					push_warning("%s: Skipping cell %s,%s,%s at index %s!" % [name, x, y, z, index])
+					continue
 				
-				if generateGridValues:
-					gridCell = GridCell.new()
-					gridCell.pos.x = x
-					gridCell.pos.y = y
-					gridCell.pos.z = z
+				if genGridCells:
+					gridCell = GridCell.new(x, y, z)
 					for i in 8:
-						gridCell.value[i] = settings.noiseFunc.call(gridCell.pos + pos + LookupTable.CornerOffsets[i])
-						if debugInfo:
-							minV = min(minV, gridCell.value[i])
-							maxV = max(maxV, gridCell.value[i])
+						gridCell.value[i] = settings.noiseFunc.call((gridCell.pos as Vector3) + pos + LookupTable.CornerOffsets[i])
 					gridCells[index] = gridCell
 				else:
 					gridCell = gridCells[index]
@@ -70,19 +63,18 @@ func march(pos: Vector3, size: Vector2, settings: MarcherSettings, debugInfo: bo
 				for i in triCount:
 					triangles[totalTriCount + i] = polys[i]
 					var colorIndex := (y + size.y) / 2. / size.y
-					triangles[totalTriCount + i].color[0] = settings.gradient.sample(colorIndex)
-					triangles[totalTriCount + i].color[1] = settings.gradient.sample(colorIndex)
-					triangles[totalTriCount + i].color[2] = settings.gradient.sample(colorIndex)
+					#var colorIndex := (y + size.z) / (size.y + size.z)
+					var color := settings.gradient.sample(colorIndex)
+					triangles[totalTriCount + i].color[0] = color
+					triangles[totalTriCount + i].color[1] = color
+					triangles[totalTriCount + i].color[2] = color
 				totalTriCount += triCount
-	if debugInfo:
-		print("Triangles: %s" % [totalTriCount])
-		print("Min/max values: %s/%s" % [minV, maxV])
+	if pos == Vector3.ZERO:
+		print("%s: Marching %s took %s milliseconds" % [name, pos, (Time.get_ticks_msec() - timeNow)])
 	
-	var surfaceTool := SurfaceTool.new()
+	surfaceTool.clear()
 	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	
-	var material := StandardMaterial3D.new()
-	material.vertex_color_use_as_albedo = true
 	surfaceTool.set_material(material)
 	for i in triangles.size():
 		surfaceTool.set_color(triangles[i].color[2])
@@ -97,14 +89,15 @@ func march(pos: Vector3, size: Vector2, settings: MarcherSettings, debugInfo: bo
 		surfaceTool.set_normal(triangles[i].normal[0])
 		surfaceTool.add_vertex(triangles[i].vertices[0])
 	
-	surfaceTool.index()
-	if debugInfo:
-		print("Vertices: %s" % [totalTriCount * 3])
+	#surfaceTool.index()
+	var mesh = surfaceTool.commit()
+	if pos == Vector3.ZERO:
+		print("%s: Mesh gen for %s took %s milliseconds" % [name, pos, (Time.get_ticks_msec() - timeNow)])
 	return {
-		"mesh" = surfaceTool.commit(),
-		"gridCells" = gridCells
+		"mesh" = mesh,
+		"gridCells" = gridCells,
+		"triCount" = totalTriCount
 	}
-
 
 # Given a grid cell and an isoLevel, calcularte the triangular facets requied to represent the isosurface through the cell.
 # Return the number of triangular facets, array "triangles" will be loaded up with the vertices at most 5 triangular facets.
@@ -141,14 +134,15 @@ func polygoniseCube(grid: GridCell, iso: float, triangles: Array[Triangle], smoo
 		var e21: int = LookupTable.EdgeConnections[edges[i + 2]][1]
 		
 		triangles[triCount] = Triangle.new()
+		var gridPos := grid.pos as Vector3
 		if smoothMesh:
-			triangles[triCount].vertices[0] = vertexInterp(iso, LookupTable.CornerOffsets[e00], LookupTable.CornerOffsets[e01], grid.value[e00], grid.value[e01]) + grid.pos
-			triangles[triCount].vertices[1] = vertexInterp(iso, LookupTable.CornerOffsets[e10], LookupTable.CornerOffsets[e11], grid.value[e10], grid.value[e11]) + grid.pos
-			triangles[triCount].vertices[2] = vertexInterp(iso, LookupTable.CornerOffsets[e20], LookupTable.CornerOffsets[e21], grid.value[e20], grid.value[e21]) + grid.pos
+			triangles[triCount].vertices[0] = vertexInterp(iso, LookupTable.CornerOffsets[e00], LookupTable.CornerOffsets[e01], grid.value[e00], grid.value[e01]) + gridPos
+			triangles[triCount].vertices[1] = vertexInterp(iso, LookupTable.CornerOffsets[e10], LookupTable.CornerOffsets[e11], grid.value[e10], grid.value[e11]) + gridPos
+			triangles[triCount].vertices[2] = vertexInterp(iso, LookupTable.CornerOffsets[e20], LookupTable.CornerOffsets[e21], grid.value[e20], grid.value[e21]) + gridPos
 		else:
-			triangles[triCount].vertices[0] = (LookupTable.CornerOffsets[e00] + LookupTable.CornerOffsets[e01]) / 2. + grid.pos
-			triangles[triCount].vertices[1] = (LookupTable.CornerOffsets[e10] + LookupTable.CornerOffsets[e11]) / 2. + grid.pos
-			triangles[triCount].vertices[2] = (LookupTable.CornerOffsets[e20] + LookupTable.CornerOffsets[e21]) / 2. + grid.pos
+			triangles[triCount].vertices[0] = (LookupTable.CornerOffsets[e00] + LookupTable.CornerOffsets[e01]) / 2. + gridPos
+			triangles[triCount].vertices[1] = (LookupTable.CornerOffsets[e10] + LookupTable.CornerOffsets[e11]) / 2. + gridPos
+			triangles[triCount].vertices[2] = (LookupTable.CornerOffsets[e20] + LookupTable.CornerOffsets[e21]) / 2. + gridPos
 		
 		if smoothNormals:
 			triangles[triCount].normal[0] = triangles[triCount].vertices[0].normalized()

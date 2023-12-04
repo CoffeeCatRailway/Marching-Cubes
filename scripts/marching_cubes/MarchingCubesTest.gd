@@ -13,7 +13,7 @@ extends MeshInstance3D
 		$StaticBody3D/CollisionShape3D.shape = null
 		clear = false
 
-@export var size: Vector2 = Vector2(60, 40):
+@export var size: Vector3i = Vector3i(60, 40, 40):
 	set(value):
 		size = value.abs()
 
@@ -75,7 +75,8 @@ func march() -> void:
 	
 	var timeNow: int = Time.get_ticks_msec()
 	
-	var marched := Marcher.march(Vector3.ZERO, size, marcherSettings, true)
+	var marched := Marcher.march(Vector3.ZERO, size, marcherSettings)
+	print("Triangles: %s\nVerticies: %s" % [marched["triCount"], marched["triCount"] * 3])
 	self.mesh = marched["mesh"]
 	$StaticBody3D/CollisionShape3D.shape = self.mesh.create_trimesh_shape()
 	
