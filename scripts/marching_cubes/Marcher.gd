@@ -5,11 +5,11 @@ var surfaceTool: SurfaceTool
 var material: StandardMaterial3D
 
 class GridCell:
-	var pos: Vector3i
+	var pos: Vector3
 	var value: Array[float]
 	
-	func _init(x: int = 0, y: int = 0, z: int = 0, _value: Array[float] = [0., 0., 0., 0., 0., 0., 0., 0.]):
-		pos = Vector3i(x, y, z)
+	func _init(x: float = 0., y: float = 0., z: float = 0., _value: Array[float] = [0., 0., 0., 0., 0., 0., 0., 0.]):
+		pos = Vector3(x, y, z)
 		value = _value
 
 class Triangle:
@@ -50,7 +50,7 @@ func march(pos: Vector3, size: Vector3i, settings: MarcherSettings, gridCells: A
 				if genGridCells:
 					gridCell = GridCell.new(x, y, z)
 					for i in 8:
-						gridCell.value[i] = settings.noiseFunc.call((gridCell.pos as Vector3) + pos + LookupTable.CornerOffsets[i])
+						gridCell.value[i] = settings.noiseFunc.call(gridCell.pos + pos + LookupTable.CornerOffsets[i])
 					gridCells[index] = gridCell
 				else:
 					gridCell = gridCells[index]
@@ -102,7 +102,7 @@ func march(pos: Vector3, size: Vector3i, settings: MarcherSettings, gridCells: A
 # Given a grid cell and an isoLevel, calcularte the triangular facets requied to represent the isosurface through the cell.
 # Return the number of triangular facets, array "triangles" will be loaded up with the vertices at most 5 triangular facets.
 # 0 will be returned if the grid cell is eiter totally above or below the isoLevel
-func polygoniseCube(grid: GridCell, iso: float, triangles: Array[Triangle], smoothMesh: bool, smoothNormals: bool) -> int:
+func polygoniseCube(grid: GridCell, iso: float, triangles: Array[Triangle], smoothMesh: bool, smoothNormals: bool, resolustion: Vector3 = Vector3.ONE) -> int:
 	# Determine the index into the edge table which tells us which vertices are inside of the surface
 	var cubeIndex: int = 0
 	if grid.value[0] < iso: cubeIndex |= 1
@@ -134,15 +134,14 @@ func polygoniseCube(grid: GridCell, iso: float, triangles: Array[Triangle], smoo
 		var e21: int = LookupTable.EdgeConnections[edges[i + 2]][1]
 		
 		triangles[triCount] = Triangle.new()
-		var gridPos := grid.pos as Vector3
 		if smoothMesh:
-			triangles[triCount].vertices[0] = vertexInterp(iso, LookupTable.CornerOffsets[e00], LookupTable.CornerOffsets[e01], grid.value[e00], grid.value[e01]) + gridPos
-			triangles[triCount].vertices[1] = vertexInterp(iso, LookupTable.CornerOffsets[e10], LookupTable.CornerOffsets[e11], grid.value[e10], grid.value[e11]) + gridPos
-			triangles[triCount].vertices[2] = vertexInterp(iso, LookupTable.CornerOffsets[e20], LookupTable.CornerOffsets[e21], grid.value[e20], grid.value[e21]) + gridPos
+			triangles[triCount].vertices[0] = vertexInterp(iso, LookupTable.CornerOffsets[e00] * resolustion, LookupTable.CornerOffsets[e01] * resolustion, grid.value[e00], grid.value[e01]) + grid.pos
+			triangles[triCount].vertices[1] = vertexInterp(iso, LookupTable.CornerOffsets[e10] * resolustion, LookupTable.CornerOffsets[e11] * resolustion, grid.value[e10], grid.value[e11]) + grid.pos
+			triangles[triCount].vertices[2] = vertexInterp(iso, LookupTable.CornerOffsets[e20] * resolustion, LookupTable.CornerOffsets[e21] * resolustion, grid.value[e20], grid.value[e21]) + grid.pos
 		else:
-			triangles[triCount].vertices[0] = (LookupTable.CornerOffsets[e00] + LookupTable.CornerOffsets[e01]) / 2. + gridPos
-			triangles[triCount].vertices[1] = (LookupTable.CornerOffsets[e10] + LookupTable.CornerOffsets[e11]) / 2. + gridPos
-			triangles[triCount].vertices[2] = (LookupTable.CornerOffsets[e20] + LookupTable.CornerOffsets[e21]) / 2. + gridPos
+			triangles[triCount].vertices[0] = (LookupTable.CornerOffsets[e00] * resolustion + LookupTable.CornerOffsets[e01] * resolustion) / 2. + grid.pos
+			triangles[triCount].vertices[1] = (LookupTable.CornerOffsets[e10] * resolustion + LookupTable.CornerOffsets[e11] * resolustion) / 2. + grid.pos
+			triangles[triCount].vertices[2] = (LookupTable.CornerOffsets[e20] * resolustion + LookupTable.CornerOffsets[e21] * resolustion) / 2. + grid.pos
 		
 		if smoothNormals:
 			triangles[triCount].normal[0] = triangles[triCount].vertices[0].normalized()
