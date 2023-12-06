@@ -1,0 +1,20 @@
+[gd_resource type="ShaderMaterial" load_steps=4 format=3 uid="uid://byv254couvh67"]
+
+[ext_resource type="Shader" path="res://materials/steepness_shader.gdshader" id="1_fxprr"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_bbkvh"]
+frequency = 0.005
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_0paqp"]
+noise = SubResource("FastNoiseLite_bbkvh")
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_fxprr")
+shader_parameter/grassLightColor = Color(0.152941, 0.564706, 0, 1)
+shader_parameter/grassDarkColor = Color(0.0980392, 0.4, 0, 1)
+shader_parameter/rockLightColor = Color(0.56861, 0.264865, 2.88785e-07, 1)
+shader_parameter/rockDarkColor = Color(0.403922, 0.180392, 0, 1)
+shader_parameter/offset = -0.5
+shader_parameter/fade = 0.0
+shader_parameter/noiseTex = SubResource("NoiseTexture2D_0paqp")
