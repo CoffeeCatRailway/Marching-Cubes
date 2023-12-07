@@ -150,6 +150,7 @@ func generateChunk() -> void: # coords: Vector3i, _chunkSize: Vector3i, marcherS
 	
 	arrMesh = surfaceTool.commit()
 	mesh = arrMesh
+	$StaticBody3D/CollisionShape3D.shape = arrMesh.create_trimesh_shape()
 
 
 
