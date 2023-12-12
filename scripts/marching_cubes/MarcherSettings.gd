@@ -21,6 +21,20 @@ extends Resource
 
 var noiseFunc: Callable
 
+func randomiseNoise(seed: String = "") -> int:
+	var rng := RandomNumberGenerator.new()
+	if seed.is_empty():
+		rng.randomize()
+	else:
+		if seed.is_valid_int():
+			rng.seed = int(seed)
+		else:
+			rng.seed = seed.hash()
+	noiseBase.seed = rng.randi()
+	noiseMask.seed = rng.randi()
+	noiseTunnel.seed = rng.randi()
+	return rng.seed
+
 func _init() -> void:
 	if resource_name == "":
 		resource_name = "Settings"

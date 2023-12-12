@@ -128,7 +128,6 @@ func loadChunks() -> void:
 	for dx in deletingChunks:
 		var i = activeCoords.find(dx)
 		activeChunks[i].save()
-		activeChunks[i].queue_free()
 		activeChunks.remove_at(i)
 		activeCoords.remove_at(i)
 	
