@@ -5,6 +5,7 @@ class_name ChunkManager extends Node3D
 # Instanced for every chunk that hasn't been loaded
 const chunkNode := preload("res://scenes/chunk.tscn")
 @export_group("Noise settings")
+
 @export var useRandomSeed: bool = false
 @export var seed: String = "0"
 @export var noiseMultiplier: float = 10.
@@ -15,12 +16,11 @@ const chunkNode := preload("res://scenes/chunk.tscn")
 @export var noiseTunnel: FastNoiseLite
 
 @export_group("")
-@export var disabled := false
-@export var generateCollision := true
+@export var disabled := false # If true, manager wont run
+@export var generateCollision := true # If true, collision mesh is generated
 @export var marcherSettings: MarcherSettings
 
-# Reference player to track location
-@export_node_path() var playerPath
+@export_node_path() var playerPath # Reference player to track location
 var player: Node
 
 @export_range(2, 2, 1, "or_greater") var renderDistance: int = 3
@@ -38,8 +38,6 @@ var mutex: Mutex
 var semaphore: Semaphore
 var thread: Thread # Make thread always running in background with queue of chunks to load
 var exitThread := false
-
-var renderWireframe := false
 
 # Checks if the chunks within the render distance have been loaded
 func _ready() -> void:
@@ -130,6 +128,7 @@ func loadChunks() -> void:
 	for dx in deletingChunks:
 		var i = activeCoords.find(dx)
 		activeChunks[i].save()
+		activeChunks[i].queue_free()
 		activeChunks.remove_at(i)
 		activeCoords.remove_at(i)
 	
@@ -183,13 +182,6 @@ func noiseFunc(pos: Vector3) -> float:
 func _process(_delta) -> void:
 	if disabled:
 		return
-	
-	if Input.is_action_just_released("ui_end"):
-		renderWireframe = !renderWireframe
-		if renderWireframe:
-			get_viewport().debug_draw = Viewport.DEBUG_DRAW_WIREFRAME
-		else:
-			get_viewport().debug_draw = Viewport.DEBUG_DRAW_DISABLED
 	
 	mutex.lock()
 	currentChunkPos = _getPlayerChunk(player.global_position)

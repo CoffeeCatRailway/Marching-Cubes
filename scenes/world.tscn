@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://cwdjkeklfejlw"]
+[gd_scene load_steps=11 format=3 uid="uid://cwdjkeklfejlw"]
 
 [ext_resource type="PackedScene" uid="uid://nyxkf4sj23o6" path="res://scenes/debug_panel.tscn" id="1_ra0yj"]
 [ext_resource type="Script" path="res://scripts/world/ChunkManager.gd" id="1_ucbca"]
@@ -37,9 +37,14 @@ colors = PackedColorArray(0.156037, 0.106529, 0.156049, 1, 0.231373, 0.164706, 0
 resource_name = "Settings"
 script = ExtResource("2_4ghey")
 isoLevel = -1.0
+gradient = SubResource("Gradient_2ugnc")
 smoothMesh = true
 smoothNormals = false
-gradient = SubResource("Gradient_2ugnc")
+baseMul = 50.0
+maskMul = 20.0
+minMaskHeight = -0.25
+tunnelMul = 10.0
+tunnelSurfacing = 0.0
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_6dxad"]
 height = 40.0
@@ -60,13 +65,6 @@ noiseTunnel = SubResource("FastNoiseLite_hyg32")
 marcherSettings = SubResource("Resource_q5utm")
 playerPath = NodePath("../TestActor")
 renderDistance = 6
-noiseMaskMultiplier = 40.0
-noise = SubResource("FastNoiseLite_bvt55")
-noiseMask = SubResource("FastNoiseLite_ehd5b")
-noiseTunnel = SubResource("FastNoiseLite_hyg32")
-playerPath = NodePath("../TestActor")
-renderDistance = 2
-chunkSize = Vector2(10, 60)
 
 [node name="TestActor" parent="." instance=ExtResource("2_mps6m")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, 0)

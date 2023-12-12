@@ -3,10 +3,12 @@
 [ext_resource type="Shader" path="res://materials/steepness_shader.gdshader" id="1_brmb4"]
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_bbkvh"]
-frequency = 0.0025
+frequency = 0.0019
+fractal_octaves = 3
 
 [sub_resource type="NoiseTexture2D" id="NoiseTexture2D_0paqp"]
 seamless = true
+seamless_blend_skirt = 0.2
 noise = SubResource("FastNoiseLite_bbkvh")
 
 [resource]
@@ -14,8 +16,12 @@ render_priority = 0
 shader = ExtResource("1_brmb4")
 shader_parameter/grassLightColor = Color(0.152941, 0.564706, 0, 1)
 shader_parameter/grassDarkColor = Color(0.0980392, 0.4, 0, 1)
-shader_parameter/rockLightColor = Color(0.568627, 0.266667, 0, 1)
-shader_parameter/rockDarkColor = Color(0.403922, 0.180392, 0, 1)
-shader_parameter/offset = -0.5
-shader_parameter/fade = 0.0
+shader_parameter/dirtLightColor = Color(0.568627, 0.266667, 0, 1)
+shader_parameter/dirtDarkColor = Color(0.403922, 0.180392, 0, 1)
+shader_parameter/rockLightColor = Color(0.439216, 0.439216, 0.439216, 1)
+shader_parameter/rockDarkColor = Color(0.303233, 0.303233, 0.303233, 1)
+shader_parameter/dirtOffset = -0.35
+shader_parameter/dirtFade = 0.0
+shader_parameter/rockOffset = -0.2
+shader_parameter/rockFade = 0.0
 shader_parameter/noiseTex = SubResource("NoiseTexture2D_0paqp")
