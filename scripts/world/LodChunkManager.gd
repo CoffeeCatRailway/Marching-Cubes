@@ -20,10 +20,19 @@ var chunkLoaded := false
 @onready var activeCoords: Array[Vector3i] = []
 @onready var activeChunks: Array[LodChunk] = []
 
+var mutex: Mutex
+var semaphore: Semaphore
+var thread: Thread # Make thread always running in background with queue of chunks to load
+var exitThread := false
+
 func _ready() -> void:
 	if disabled:
 		process_mode = Node.PROCESS_MODE_DISABLED
 		return
+	
+	mutex = Mutex.new()
+	semaphore = Semaphore.new()
+	thread = Thread.new()
 	
 	var worldSeed = marcherSettings.randomiseNoise(seed)
 	print("%s: Seed: %s" % [name, worldSeed])
@@ -34,7 +43,10 @@ func _ready() -> void:
 	print("%s: Chunks visible: %s" % [name, chunksVisible])
 	
 	currentChunkPos = _getPlayerChunk(viewer.global_position)
-	updateVisibleChunks()
+	#updateVisibleChunks()
+	
+	thread.start(chunkThreadProcess)
+	semaphore.post()
 
 func noiseFunc(pos: Vector3, marcherSettings: MarcherSettings) -> float:
 	if pos.y <= -(chunkSize / 2.):
@@ -51,17 +63,50 @@ func noiseFunc(pos: Vector3, marcherSettings: MarcherSettings) -> float:
 		noiseVal *= tunnel
 	return snappedf(noiseVal, .001)
 
+func chunkThreadProcess() -> void:
+	Thread.set_thread_safety_checks_enabled(false)
+	while true:
+		semaphore.wait() # Wait until posted
+		
+		mutex.lock()
+		var shouldExit = exitThread
+		mutex.unlock()
+		
+		if shouldExit:
+			break
+		
+		## DO SHIT!
+		updateVisibleChunks()
+
 func _process(delta) -> void:
 	if disabled:
 		return
 	
+	mutex.lock()
 	currentChunkPos = _getPlayerChunk(viewer.global_position)
 	
 	if previousChunkPos != currentChunkPos:
 		if !chunkLoaded:
-			updateVisibleChunks()
+			#updateVisibleChunks()
+			semaphore.post()
 	else:
 		chunkLoaded = false
+	mutex.unlock()
+	
+	if Input.is_action_just_released("ui_page_down") && WorldSaver.retriveData(Vector3i.ZERO).size() > 0:
+		var data: Array[Marcher.GridCell] = WorldSaver.retriveData(Vector3i.ZERO)[0]
+		var file = FileAccess.open("user://Chunk000.gd", FileAccess.WRITE)
+		file.store_line("extends Node")
+		file.store_string("var data: Array[Marcher.GridCell] = [")
+		for i in data.size():
+			var cell := data[i]
+			file.store_string("Marcher.GridCell.new(%s,%s,%s,%s)" % [cell.pos.x, cell.pos.y, cell.pos.z, cell.value])
+			if i == data.size() - 1:
+				file.store_string("]")
+			else:
+				file.store_string(",\n")
+		file.close()
+		print("%s: Exported chunk 0,0,0 data" % name)
 	
 	previousChunkPos = currentChunkPos
 
@@ -81,6 +126,13 @@ func updateVisibleChunks() -> void:
 	var loadingCoord: Array[Vector3i] = []
 	
 	for xd in range(-chunksVisible + 1, chunksVisible):
+		mutex.lock()
+		var shouldExit = exitThread
+		mutex.unlock()
+		
+		if shouldExit:
+			break
+		
 		for zd in range(-chunksVisible + 1, chunksVisible):
 			var chunkCoords := Vector3i(currentChunkPos.x + xd, 0, currentChunkPos.z + zd)
 			loadingCoord.append(chunkCoords)
@@ -90,14 +142,14 @@ func updateVisibleChunks() -> void:
 			var chunkIndex := activeCoords.find(chunkCoords)
 			if chunkIndex == -1:
 				var chunk = chunkScene.instantiate()
-				var chunkPos = Vector3(chunkCoords.x * chunkSize, 0., chunkCoords.z * chunkSize)
 				var pos := chunkCoords * chunkSize
-				chunk.setup(Vector3(pos.x, 0., pos.z), currentChunkPos, chunkSize)
+				chunk.setup(Vector3(pos.x, 0., pos.z), chunkCoords, chunkSize)
 				chunk.updateLod(viewer.global_position)
 				chunk.generateChunk(marcherSettings)
 				activeChunks.append(chunk)
 				activeCoords.append(chunkCoords)
-				add_child(chunk)
+				#add_child(chunk)
+				call_deferred("add_child", chunk)
 			else:
 				var chunk := activeChunks[chunkIndex]
 				#chunk.updateChunk(viewer.global_position, viewDistance)
@@ -111,11 +163,13 @@ func updateVisibleChunks() -> void:
 			deletingChunks.append(dx)
 	for dx in deletingChunks:
 		var i = activeCoords.find(dx)
-		activeChunks[i].save()
+		activeChunks[i].saveAndFree()
 		activeChunks.remove_at(i)
 		activeCoords.remove_at(i)
 	
+	mutex.lock()
 	chunkLoaded = true
+	mutex.unlock()
 	
 	print("%s: Loading chunks around %s took %s milliseconds" % [name, currentChunkPos, (Time.get_ticks_msec() - timeNow)])
 
@@ -123,7 +177,18 @@ func _exit_tree() -> void:
 	if disabled:
 		return
 	
-	pass
+	# Set thread exit condition
+	mutex.lock()
+	exitThread = true
+	mutex.unlock()
+	
+	# Unblock by posting
+	semaphore.post()
+	
+	print(name, ": Stopping chunk thread!")
+	
+	# Wait for thread to finish
+	thread.wait_to_finish()
 
 
 

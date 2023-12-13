@@ -1,44 +1,46 @@
-#@tool
 class_name LodChunk extends MeshInstance3D
 ## Based on https://github.com/Chevifier/Inifinte-Terrain-Generation
 
-#@export var generate := false:
-#	set(value):
-#		if value:
-#			generate = false
-#			generateChunk(Vector3i.ZERO, chunkSize, marcherSettings)
-
 var chunkSize := 200 # @export_range(1, 400, 1) 
-var resolution := 20 # @export_range(1, 100, 1) 
-var lods: Array[int] = [2, 4, 8, 16]#[2, 4, 8, 16, 30, 60]
-var lodDistance: Array[int] = [1050, 900, 790, 550]#[2000, 1500, 1050, 900, 790, 550] # Tweak distances
+var resolution := 30 # @export_range(1, 100, 1) 
+const lods: Array[int] = [2, 4, 8, 16, 30]#[2, 4, 8, 16, 30, 60]
+const lodDistance: Array[int] = [1750, 1500, 1100, 750, 500]#[2000, 1750, 1500, 1200, 750, 500] # Tweak distances
 
-#@export var marcherSettings: MarcherSettings
 @export var material: Material
 
-const CENTER_OFFSET := Vector3(.5, .5, .5)
-var chunkCoord := Vector3i()
+const CENTER_OFFSET := Vector3.ONE / 2.#Vector3(.5, .5, .5)
+var chunkCoord := Vector3i.ZERO
 var chunkData: Array = []
 var generateCollision = false
 
-#func _ready() -> void:
-	#marcherSettings.noiseFunc = noiseFunc
+const colors := [Color.WHITE, Color.YELLOW, Color.ORANGE, Color.ORANGE_RED, Color.RED]
+var color := Color.WHITE
+var vertexColMat: StandardMaterial3D
 
 func setup(pos: Vector3, _chunkCoord: Vector3i, _chunkSize: int) -> void:
 	position = pos
 	chunkSize = _chunkSize
 	chunkCoord = _chunkCoord
+	
+	vertexColMat = StandardMaterial3D.new()
+	vertexColMat.vertex_color_use_as_albedo = true
+	
+	chunkData.resize(1)
+	chunkData[0] = []
+	
 	WorldSaver.addChunk(chunkCoord)
+	save()
 
 func updateChunk(viewerPosition: Vector3, viewDistance) -> void:
 	pass
 
-func distanceToChunk(viewerPosition: Vector3) -> float:
+func horizontalDistanceToChunk(viewerPosition: Vector3) -> float:
 	return Vector2(position.x, position.z).distance_to(Vector2(viewerPosition.x, viewerPosition.z))
 
 func updateLod(viewerPosition: Vector3) -> bool:
-	var dist = distanceToChunk(viewerPosition)
-	var newLod = lods[0]
+	var dist = horizontalDistanceToChunk(viewerPosition)
+	var newLod := lods[0]
+	var newColor := color
 	if lods.size() != lodDistance.size():
 		print("ERROR: Lods and distance count mismatch")
 		return false
@@ -47,6 +49,7 @@ func updateLod(viewerPosition: Vector3) -> bool:
 		var lodDist = lodDistance[i]
 		if dist < lodDist:
 			newLod = lods[i]
+			newColor = colors[i]
 	
 	# If chunk is at highest resolution create collision shape
 	generateCollision = newLod >= lods[lods.size() - 1]
@@ -54,6 +57,7 @@ func updateLod(viewerPosition: Vector3) -> bool:
 	# If resolution is not equal to new resolution, return true
 	if resolution != newLod:
 		resolution = newLod
+		color = newColor
 		return true
 	return false
 
@@ -61,14 +65,26 @@ func generateChunk(marcherSettings: MarcherSettings) -> void:
 	var polys: Array[Marcher.Triangle] = []
 	polys.resize(10)
 	
+	var isMaxResolution := resolution >= lods[lods.size() - 1]
+	var gridCells: Array = []
+	if isMaxResolution:
+		gridCells = WorldSaver.retriveData(chunkCoord)[0]#chunkData[0]
+	
+	var shouldGenCells := gridCells.size() == 0
+	if shouldGenCells && isMaxResolution:
+		gridCells.resize(resolution * resolution * resolution)
+	
 	var arrMesh: ArrayMesh
 	var surfaceTool := SurfaceTool.new()
 	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surfaceTool.set_color(color)
 	
 	#var totalTriCount := 0
 	#var minVal := 0.
 	#var maxVal := 0.
 	
+	# When loading 'modified' terrain, only use chunkData for highest resolution
+	# Regenerate mesh for low-resolution chunks
 	for x in resolution:
 		for y in resolution:
 			for z in resolution:
@@ -76,9 +92,24 @@ func generateChunk(marcherSettings: MarcherSettings) -> void:
 				var percent := Vector3(x, y, z) / resolution - CENTER_OFFSET
 				var vertex := Vector3(percent.x, percent.y, percent.z) * chunkSize
 				
-				var gridCell := Marcher.GridCell.new(vertex.x, vertex.y, vertex.z)
-				for i in 8:
-					gridCell.value[i] = marcherSettings.noiseFunc.call(position + vertex + LookupTable.CornerOffsets[i] / resolution * chunkSize, marcherSettings)
+				var gridCell: Marcher.GridCell
+				var gcIndex = z * resolution * resolution + y * resolution + x
+				if isMaxResolution && gcIndex > gridCells.size():
+					push_warning("%s: Skipping cell %s,%s,%s at index %s!" % [name, x, y, z, gcIndex])
+					continue
+				
+				if shouldGenCells:
+					gridCell = Marcher.GridCell.new(vertex.x, vertex.y, vertex.z)
+					for i in 8:
+						gridCell.value[i] = marcherSettings.noiseFunc.call(position + vertex + LookupTable.CornerOffsets[i] / resolution * chunkSize, marcherSettings)
+					if isMaxResolution:
+						gridCells[gcIndex] = gridCell
+				elif isMaxResolution:
+					gridCell = gridCells[gcIndex]
+				
+				#var gridCell := Marcher.GridCell.new(vertex.x, vertex.y, vertex.z)
+				#for i in 8:
+				#	gridCell.value[i] = marcherSettings.noiseFunc.call(position + vertex + LookupTable.CornerOffsets[i] / resolution * chunkSize, marcherSettings)
 					#minVal = minf(minVal, gridCell.value[i])
 					#maxVal = maxf(maxVal, gridCell.value[i])
 				
@@ -121,15 +152,26 @@ func generateChunk(marcherSettings: MarcherSettings) -> void:
 	#		vert += 1
 	#	vert += 1
 	
+	if isMaxResolution:
+		chunkData[0] = gridCells
+		save()
+	
 	surfaceTool.index()
 	arrMesh = surfaceTool.commit()
+	
 	mesh = arrMesh
-	mesh.surface_set_material(0, material)
+	if mesh.get_surface_count() > 0:
+		#mesh.surface_set_material(0, material)
+		mesh.surface_set_material(0, vertexColMat)
+	
 	if generateCollision:
 		$StaticBody3D/CollisionShape3D.shape = arrMesh.create_trimesh_shape()
 
 func save() -> void:
 	WorldSaver.saveChunk(chunkCoord, chunkData)
+
+func saveAndFree() -> void:
+	save()
 	queue_free()
 
 

@@ -1,8 +1,7 @@
 @tool
 extends Node
 
-var surfaceTool: SurfaceTool
-var material: StandardMaterial3D
+var vertexColMat: StandardMaterial3D
 
 class GridCell:
 	var pos: Vector3
@@ -18,14 +17,15 @@ class Triangle:
 	var color: Array[Color] = [Color.DIM_GRAY, Color.DIM_GRAY, Color.DIM_GRAY]
 
 func _ready() -> void:
-	surfaceTool = SurfaceTool.new()
-	material = StandardMaterial3D.new()
-	material.vertex_color_use_as_albedo = true
+	vertexColMat = StandardMaterial3D.new()
+	vertexColMat.vertex_color_use_as_albedo = true
 
 func march(pos: Vector3, size: Vector3i, marcherSettings: MarcherSettings, gridCells: Array[GridCell] = []) -> Dictionary:
 	var timeNow: int
 	if pos == Vector3.ZERO:
 		timeNow = Time.get_ticks_msec()
+		
+	var surfaceTool := SurfaceTool.new()
 	
 	var genGridCells = gridCells.size() == 0
 	if genGridCells:
@@ -75,7 +75,7 @@ func march(pos: Vector3, size: Vector3i, marcherSettings: MarcherSettings, gridC
 	surfaceTool.clear()
 	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	
-	surfaceTool.set_material(material)
+	surfaceTool.set_material(vertexColMat)
 	for i in triangles.size():
 		surfaceTool.set_color(triangles[i].color[2])
 		surfaceTool.set_normal(triangles[i].normal[2])
