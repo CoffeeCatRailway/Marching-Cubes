@@ -1,6 +1,8 @@
 class_name LodChunk extends MeshInstance3D
 ## Based on https://github.com/Chevifier/Inifinte-Terrain-Generation
 
+static var DEBUG_COLOR := false
+
 var chunkSize := 200 # @export_range(1, 400, 1) 
 var resolution := 30 # @export_range(1, 100, 1) 
 const lods: Array[int] = [2, 4, 8, 16, 30]#[2, 4, 8, 16, 30, 60]
@@ -15,18 +17,16 @@ var generateCollision = false
 
 const colors := [Color.WHITE, Color.YELLOW, Color.ORANGE, Color.ORANGE_RED, Color.RED]
 var color := Color.WHITE
-var vertexColMat: StandardMaterial3D
+const vertexColMat: StandardMaterial3D = preload("res://materials/vertex_color_mat.tres")
 
 func setup(pos: Vector3, _chunkCoord: Vector3i, _chunkSize: int) -> void:
 	position = pos
 	chunkSize = _chunkSize
 	chunkCoord = _chunkCoord
 	
-	vertexColMat = StandardMaterial3D.new()
-	vertexColMat.vertex_color_use_as_albedo = true
-	
 	chunkData.resize(1)
-	chunkData[0] = []
+	var emptyGridArray: Array[Marcher.GridCell] = [] # Set type or shit gets angry
+	chunkData[0] = emptyGridArray
 	
 	WorldSaver.addChunk(chunkCoord)
 	save()
@@ -49,7 +49,8 @@ func updateLod(viewerPosition: Vector3) -> bool:
 		var lodDist = lodDistance[i]
 		if dist < lodDist:
 			newLod = lods[i]
-			newColor = colors[i]
+			if DEBUG_COLOR:
+				newColor = colors[i]
 	
 	# If chunk is at highest resolution create collision shape
 	generateCollision = newLod >= lods[lods.size() - 1]
@@ -57,7 +58,8 @@ func updateLod(viewerPosition: Vector3) -> bool:
 	# If resolution is not equal to new resolution, return true
 	if resolution != newLod:
 		resolution = newLod
-		color = newColor
+		if DEBUG_COLOR:
+			color = newColor
 		return true
 	return false
 
@@ -66,7 +68,7 @@ func generateChunk(marcherSettings: MarcherSettings) -> void:
 	polys.resize(10)
 	
 	var isMaxResolution := resolution >= lods[lods.size() - 1]
-	var gridCells: Array = []
+	var gridCells: Array[Marcher.GridCell] = []
 	if isMaxResolution:
 		gridCells = WorldSaver.retriveData(chunkCoord)[0]#chunkData[0]
 	
@@ -77,7 +79,8 @@ func generateChunk(marcherSettings: MarcherSettings) -> void:
 	var arrMesh: ArrayMesh
 	var surfaceTool := SurfaceTool.new()
 	surfaceTool.begin(Mesh.PRIMITIVE_TRIANGLES)
-	surfaceTool.set_color(color)
+	if DEBUG_COLOR:
+		surfaceTool.set_color(color)
 	
 	#var totalTriCount := 0
 	#var minVal := 0.
@@ -161,8 +164,10 @@ func generateChunk(marcherSettings: MarcherSettings) -> void:
 	
 	mesh = arrMesh
 	if mesh.get_surface_count() > 0:
-		#mesh.surface_set_material(0, material)
-		mesh.surface_set_material(0, vertexColMat)
+		if DEBUG_COLOR:
+			mesh.surface_set_material(0, vertexColMat)
+		else:
+			mesh.surface_set_material(0, material)
 	
 	if generateCollision:
 		$StaticBody3D/CollisionShape3D.shape = arrMesh.create_trimesh_shape()

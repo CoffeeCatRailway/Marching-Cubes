@@ -1,7 +1,7 @@
 @tool
 extends Node
 
-var vertexColMat: StandardMaterial3D
+const vertexColMat: StandardMaterial3D = preload("res://materials/vertex_color_mat.tres")
 
 class GridCell:
 	var pos: Vector3
@@ -15,10 +15,6 @@ class Triangle:
 	var vertices: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
 	var normal: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
 	var color: Array[Color] = [Color.DIM_GRAY, Color.DIM_GRAY, Color.DIM_GRAY]
-
-func _ready() -> void:
-	vertexColMat = StandardMaterial3D.new()
-	vertexColMat.vertex_color_use_as_albedo = true
 
 func march(pos: Vector3, size: Vector3i, marcherSettings: MarcherSettings, gridCells: Array[GridCell] = []) -> Dictionary:
 	var timeNow: int
