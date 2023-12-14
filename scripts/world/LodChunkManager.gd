@@ -50,7 +50,7 @@ func _ready() -> void:
 
 func noiseFunc(pos: Vector3, marcherSettings: MarcherSettings) -> float:
 	if pos.y <= -(chunkSize / 2.):
-		return 0.;
+		return marcherSettings.isoLevel;
 	var noiseVal: float = -pos.y
 	noiseVal += marcherSettings.noiseBase.get_noise_3dv(pos) * marcherSettings.baseMul
 	#noiseVal += marcherSettings.noiseMask.get_noise_3dv(pos) * marcherSettings.maskMul
