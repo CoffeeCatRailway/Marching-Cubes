@@ -6,7 +6,7 @@ static var DEBUG_COLOR := false
 var chunkSize := 200 # @export_range(1, 400, 1) 
 var resolution := 30 # @export_range(1, 100, 1) 
 const lods: Array[int] = [2, 4, 8, 16, 30]#[2, 4, 8, 16, 30, 60]
-const lodDistance: Array[int] = [1750, 1500, 1100, 750, 500]#[2000, 1750, 1500, 1200, 750, 500] # Tweak distances
+const lodDistance: Array[int] = [1750, 1500, 1100, 750, 400]#[2000, 1750, 1500, 1200, 750, 500] # Tweak distances
 
 @export var material: Material
 
@@ -40,7 +40,7 @@ func horizontalDistanceToChunk(viewerPosition: Vector3) -> float:
 func updateLod(viewerPosition: Vector3) -> bool:
 	var dist = horizontalDistanceToChunk(viewerPosition)
 	var newLod := lods[0]
-	var newColor := color
+	var newColor := colors[0]
 	if lods.size() != lodDistance.size():
 		print("ERROR: Lods and distance count mismatch")
 		return false

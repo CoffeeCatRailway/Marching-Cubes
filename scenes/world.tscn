@@ -51,6 +51,7 @@ tunnelSurfacing = 0.0
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_bivhi"]
 noise_type = 0
+frequency = 0.005
 fractal_type = 0
 fractal_octaves = 1
 
