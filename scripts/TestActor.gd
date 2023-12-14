@@ -36,8 +36,8 @@ func _input(event) -> void:
 		if mouseModeToggle:
 			pitch = max(min(pitch - (event as InputEventMouseMotion).relative.y * viewSensitivity, 90.), -90.)
 			yaw = fmod(yaw - (event as InputEventMouseMotion).relative.x * viewSensitivity, 360.)
-			$Camera3D.rotation.x = deg_to_rad(pitch)
-			$Camera3D.rotation.y = deg_to_rad(yaw)
+			$CamHolder/Camera3D.rotation.x = deg_to_rad(pitch)
+			$CamHolder.rotation.y = deg_to_rad(yaw)
 	if event is InputEventKey:
 		## "ui_*" actions will use ImGUI
 		if event.is_action_released("ui_home"):
@@ -63,7 +63,7 @@ func _exit_tree() -> void:
 
 func _physics_process(delta) -> void:
 	if mouseModeToggle:
-		var aim = $Camera3D.global_transform.basis
+		var aim = $CamHolder.global_transform.basis
 		var moveDir := Vector3.ZERO
 		if Input.is_action_pressed("move_forward"):
 			moveDir -= aim[2]
@@ -79,9 +79,9 @@ func _physics_process(delta) -> void:
 		
 		if flying: # Flying: up/down controls
 			if Input.is_action_pressed("jump"):
-				velocity.y += flySpeed / 2.
+				velocity.y += flySpeed / 4.
 			if Input.is_action_pressed("crouch"):
-				velocity.y -= flySpeed / 2.
+				velocity.y -= flySpeed / 4.
 		else: # Not flying: gravity
 			velocity.y -= Gravity * delta
 			if Input.is_action_pressed("jump") && is_on_floor():
