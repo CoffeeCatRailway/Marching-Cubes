@@ -121,40 +121,47 @@ func _getPlayerChunk(pos: Vector3) -> Vector3i:
 		chunkPos.z -= 1
 	return chunkPos
 
+func loadChunk(chunkCoords: Vector3i) -> void:
+	# 'loadingCoord' stores the coords that are in the new chunk(s)
+	# make sure only inactive coords are loaded
+	var chunkIndex := activeCoords.find(chunkCoords)
+	if chunkIndex == -1:
+		var chunk = chunkScene.instantiate()
+		var pos := chunkCoords * chunkSize
+		chunk.setup(Vector3(pos.x, 0., pos.z), chunkCoords, chunkSize)
+		chunk.updateLod(viewer.global_position)
+		chunk.generateChunk(marcherSettings)
+		activeChunks.append(chunk)
+		activeCoords.append(chunkCoords)
+		#add_child(chunk)
+		call_deferred("add_child", chunk)
+	else:
+		var chunk := activeChunks[chunkIndex]
+		#chunk.updateChunk(viewer.global_position, viewDistance)
+		if chunk.updateLod(viewer.global_position):
+			chunk.generateChunk(marcherSettings)
+
 func updateVisibleChunks() -> void:
 	var timeNow := Time.get_ticks_msec()
-	var loadingCoord: Array[Vector3i] = []
+	var loadingCoord: Array[Vector3i] = [currentChunkPos]
+	
+	loadChunk(currentChunkPos)
 	
 	for xd in range(-chunksVisible + 1, chunksVisible):
-		mutex.lock()
-		var shouldExit = exitThread
-		mutex.unlock()
+		#mutex.lock()
+		#var shouldExit = exitThread
+		#mutex.unlock()
 		
-		if shouldExit:
-			break
+		#if shouldExit:
+		#	break
 		
 		for zd in range(-chunksVisible + 1, chunksVisible):
+			if xd == 0 && zd == 0:
+				continue
+			
 			var chunkCoords := Vector3i(currentChunkPos.x + xd, 0, currentChunkPos.z + zd)
 			loadingCoord.append(chunkCoords)
-			
-			# 'loadingCoord' stores the coords that are in the new chunk(s)
-			# make sure only inactive coords are loaded
-			var chunkIndex := activeCoords.find(chunkCoords)
-			if chunkIndex == -1:
-				var chunk = chunkScene.instantiate()
-				var pos := chunkCoords * chunkSize
-				chunk.setup(Vector3(pos.x, 0., pos.z), chunkCoords, chunkSize)
-				chunk.updateLod(viewer.global_position)
-				chunk.generateChunk(marcherSettings)
-				activeChunks.append(chunk)
-				activeCoords.append(chunkCoords)
-				#add_child(chunk)
-				call_deferred("add_child", chunk)
-			else:
-				var chunk := activeChunks[chunkIndex]
-				#chunk.updateChunk(viewer.global_position, viewDistance)
-				if chunk.updateLod(viewer.global_position):
-					chunk.generateChunk(marcherSettings)
+			loadChunk(chunkCoords)
 	
 	# Delete inactive (out of render distance) chunks
 	var deletingChunks = []
