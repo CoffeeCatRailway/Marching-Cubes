@@ -13,7 +13,7 @@ var mouseModeToggle := true # false is visible
 
 const Accel := 2.
 const Deaccel := 4.
-var Gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
+var Gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var JumpForce := Gravity / 2.
 
 var renderWireframe := false: # If true, meshes render as wireframe
