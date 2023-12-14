@@ -171,6 +171,8 @@ func generateChunk(marcherSettings: MarcherSettings) -> void:
 	
 	if generateCollision:
 		$StaticBody3D/CollisionShape3D.shape = arrMesh.create_trimesh_shape()
+	else:
+		$StaticBody3D/CollisionShape3D.shape = null
 
 func save() -> void:
 	WorldSaver.saveChunk(chunkCoord, chunkData)
