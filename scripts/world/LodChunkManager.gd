@@ -1,9 +1,7 @@
 class_name LodChunkManager extends Node3D
 ## Chunk loading system based on https://github.com/Chevifier/Inifinte-Terrain-Generation/blob/main/EndlessTerrain/EndlessTerrain.gd
 
-const chunkScene := preload("res://scenes/lod_chunk.tscn")
-
-@export var disabled := false
+#const chunkScene := preload("res://scenes/lod_chunk.tscn")
 
 @export var seed: String = "0"
 @export_range(1, 400, 1) var chunkSize := 200
@@ -11,6 +9,7 @@ const chunkScene := preload("res://scenes/lod_chunk.tscn")
 @export var marcherSettings: MarcherSettings
 
 @export var viewer: CharacterBody3D
+@export var material: Material
 
 var chunksVisible := 0
 var currentChunkPos := Vector3i.ZERO
@@ -18,7 +17,7 @@ var previousChunkPos := Vector3i.ZERO
 var chunkLoaded := false
 
 @onready var activeCoords: Array[Vector3i] = []
-@onready var activeChunks: Array[LodChunk] = []
+@onready var activeChunks: Array[LodRSChunk] = []
 
 var mutex: Mutex
 var semaphore: Semaphore
@@ -26,10 +25,6 @@ var thread: Thread # Make thread always running in background with queue of chun
 var exitThread := false
 
 func _ready() -> void:
-	if disabled:
-		process_mode = Node.PROCESS_MODE_DISABLED
-		return
-	
 	mutex = Mutex.new()
 	semaphore = Semaphore.new()
 	thread = Thread.new()
@@ -79,9 +74,6 @@ func chunkThreadProcess() -> void:
 		updateVisibleChunks()
 
 func _process(delta) -> void:
-	if disabled:
-		return
-	
 	mutex.lock()
 	currentChunkPos = _getPlayerChunk(viewer.global_position)
 	
@@ -121,26 +113,40 @@ func _getPlayerChunk(pos: Vector3) -> Vector3i:
 		chunkPos.z -= 1
 	return chunkPos
 
-func loadChunk(chunkCoords: Vector3i) -> void:
-	# 'loadingCoord' stores the coords that are in the new chunk(s)
-	# make sure only inactive coords are loaded
+#func loadChunk(chunkCoords: Vector3i) -> void:
+#	var chunkIndex := activeCoords.find(chunkCoords)
+#	var viewerPos: Vector3 = viewer.global_position#call_deferred("get_global_position")
+#	if chunkIndex == -1:
+#		var chunk = chunkScene.instantiate()
+#		var pos := chunkCoords * chunkSize
+#		chunk.setup(Vector3(pos.x, 0., pos.z), chunkCoords, chunkSize)
+#		chunk.updateLod(viewerPos)
+#		chunk.generateChunk(marcherSettings)
+#		activeChunks.append(chunk)
+#		activeCoords.append(chunkCoords)
+#		#add_child(chunk)
+#		call_deferred("add_child", chunk)
+#	else:
+#		var chunk := activeChunks[chunkIndex]
+#		#chunk.updateChunk(viewerPos, viewDistance)
+#		if chunk.updateLod(viewerPos):
+#			chunk.generateChunk(marcherSettings)
+
+func loadRSChunk(chunkCoords: Vector3i) -> void:
 	var chunkIndex := activeCoords.find(chunkCoords)
 	var viewerPos: Vector3 = viewer.global_position#call_deferred("get_global_position")
 	if chunkIndex == -1:
-		var chunk = chunkScene.instantiate()
-		var pos := chunkCoords * chunkSize
-		chunk.setup(Vector3(pos.x, 0., pos.z), chunkCoords, chunkSize)
+		var chunk := LodRSChunk.new(material, marcherSettings, get_world_3d().scenario, get_world_3d().space)
+		chunk.setup(chunkCoords * chunkSize, chunkCoords, chunkSize)
 		chunk.updateLod(viewerPos)
-		chunk.generateChunk(marcherSettings)
+		chunk.generateChunk()
 		activeChunks.append(chunk)
 		activeCoords.append(chunkCoords)
-		#add_child(chunk)
-		call_deferred("add_child", chunk)
 	else:
 		var chunk := activeChunks[chunkIndex]
 		#chunk.updateChunk(viewerPos, viewDistance)
 		if chunk.updateLod(viewerPos):
-			chunk.generateChunk(marcherSettings)
+			chunk.generateChunk()
 
 func updateVisibleChunks() -> void:
 	var timeNow := Time.get_ticks_msec()
@@ -148,9 +154,11 @@ func updateVisibleChunks() -> void:
 	
 	#mutex.lock()
 	loadingCoord.append(currentChunkPos)
-	loadChunk(currentChunkPos)
+	loadRSChunk(currentChunkPos)
 	#mutex.unlock()
 	
+	# 'loadingCoord' stores the coords that are in the new chunk(s)
+	# make sure only inactive coords are loaded
 	for xd in range(-chunksVisible + 1, chunksVisible):
 		#mutex.lock()
 		#var shouldExit = exitThread
@@ -167,7 +175,7 @@ func updateVisibleChunks() -> void:
 			var chunkCoords := Vector3i(currentChunkPos.x + xd, 0, currentChunkPos.z + zd)
 			#mutex.unlock()
 			loadingCoord.append(chunkCoords)
-			loadChunk(chunkCoords)
+			loadRSChunk(chunkCoords)
 	
 	# Delete inactive (out of render distance) chunks
 	var deletingChunks = []
@@ -176,6 +184,7 @@ func updateVisibleChunks() -> void:
 			deletingChunks.append(dx)
 	for dx in deletingChunks:
 		var i = activeCoords.find(dx)
+		activeChunks[i].clearCollision()
 		activeChunks[i].saveAndFree()
 		activeChunks.remove_at(i)
 		activeCoords.remove_at(i)
@@ -187,9 +196,6 @@ func updateVisibleChunks() -> void:
 	print("%s: Loading chunks around %s took %s milliseconds" % [name, currentChunkPos, (Time.get_ticks_msec() - timeNow)])
 
 func _exit_tree() -> void:
-	if disabled:
-		return
-	
 	# Set thread exit condition
 	mutex.lock()
 	exitThread = true
@@ -197,6 +203,10 @@ func _exit_tree() -> void:
 	
 	# Unblock by posting
 	semaphore.post()
+	
+	for i in activeChunks.size():
+	#	activeChunks[i].clearCollision()
+		activeChunks[i].saveAndFree()
 	
 	print(name, ": Stopping chunk thread!")
 	
