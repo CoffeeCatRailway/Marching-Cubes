@@ -125,11 +125,12 @@ func loadChunk(chunkCoords: Vector3i) -> void:
 	# 'loadingCoord' stores the coords that are in the new chunk(s)
 	# make sure only inactive coords are loaded
 	var chunkIndex := activeCoords.find(chunkCoords)
+	var viewerPos: Vector3 = viewer.global_position#call_deferred("get_global_position")
 	if chunkIndex == -1:
 		var chunk = chunkScene.instantiate()
 		var pos := chunkCoords * chunkSize
 		chunk.setup(Vector3(pos.x, 0., pos.z), chunkCoords, chunkSize)
-		chunk.updateLod(viewer.global_position)
+		chunk.updateLod(viewerPos)
 		chunk.generateChunk(marcherSettings)
 		activeChunks.append(chunk)
 		activeCoords.append(chunkCoords)
@@ -137,15 +138,18 @@ func loadChunk(chunkCoords: Vector3i) -> void:
 		call_deferred("add_child", chunk)
 	else:
 		var chunk := activeChunks[chunkIndex]
-		#chunk.updateChunk(viewer.global_position, viewDistance)
-		if chunk.updateLod(viewer.global_position):
+		#chunk.updateChunk(viewerPos, viewDistance)
+		if chunk.updateLod(viewerPos):
 			chunk.generateChunk(marcherSettings)
 
 func updateVisibleChunks() -> void:
 	var timeNow := Time.get_ticks_msec()
-	var loadingCoord: Array[Vector3i] = [currentChunkPos]
+	var loadingCoord: Array[Vector3i] = []
 	
+	#mutex.lock()
+	loadingCoord.append(currentChunkPos)
 	loadChunk(currentChunkPos)
+	#mutex.unlock()
 	
 	for xd in range(-chunksVisible + 1, chunksVisible):
 		#mutex.lock()
@@ -159,7 +163,9 @@ func updateVisibleChunks() -> void:
 			if xd == 0 && zd == 0:
 				continue
 			
+			#mutex.lock()
 			var chunkCoords := Vector3i(currentChunkPos.x + xd, 0, currentChunkPos.z + zd)
+			#mutex.unlock()
 			loadingCoord.append(chunkCoords)
 			loadChunk(chunkCoords)
 	
@@ -195,7 +201,8 @@ func _exit_tree() -> void:
 	print(name, ": Stopping chunk thread!")
 	
 	# Wait for thread to finish
-	thread.wait_to_finish()
+	if thread.is_alive():
+		thread.wait_to_finish()
 
 
 

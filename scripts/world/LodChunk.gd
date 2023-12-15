@@ -35,7 +35,8 @@ func updateChunk(viewerPosition: Vector3, viewDistance) -> void:
 	pass
 
 func horizontalDistanceToChunk(viewerPosition: Vector3) -> float:
-	return Vector2(position.x, position.z).distance_to(Vector2(viewerPosition.x, viewerPosition.z))
+	var pos: Vector3 = position#call_deferred("get_position")
+	return Vector2(pos.x, pos.z).distance_to(Vector2(viewerPosition.x, viewerPosition.z))
 
 func updateLod(viewerPosition: Vector3) -> bool:
 	var dist = horizontalDistanceToChunk(viewerPosition)
@@ -88,6 +89,7 @@ func generateChunk(marcherSettings: MarcherSettings) -> void:
 	
 	# When loading 'modified' terrain, only use chunkData for highest resolution
 	# Regenerate mesh for low-resolution chunks
+	var pos: Vector3 = position#call_deferred("get_position")
 	for x in resolution:
 		for y in resolution:
 			for z in resolution:
@@ -104,7 +106,7 @@ func generateChunk(marcherSettings: MarcherSettings) -> void:
 				if shouldGenCells:
 					gridCell = Marcher.GridCell.new(vertex.x, vertex.y, vertex.z)
 					for i in 8:
-						gridCell.value[i] = marcherSettings.noiseFunc.call(position + vertex + LookupTable.CornerOffsets[i] / resolution * chunkSize, marcherSettings)
+						gridCell.value[i] = marcherSettings.noiseFunc.call(pos + vertex + LookupTable.CornerOffsets[i] / resolution * chunkSize, marcherSettings)
 					if isMaxResolution:
 						gridCells[gcIndex] = gridCell
 				elif isMaxResolution:
@@ -171,8 +173,9 @@ func generateChunk(marcherSettings: MarcherSettings) -> void:
 	
 	if generateCollision:
 		$StaticBody3D/CollisionShape3D.shape = arrMesh.create_trimesh_shape()
+		$StaticBody3D/CollisionShape3D.disabled = false
 	else:
-		$StaticBody3D/CollisionShape3D.shape = null
+		$StaticBody3D/CollisionShape3D.disabled = true
 
 func save() -> void:
 	WorldSaver.saveChunk(chunkCoord, chunkData)

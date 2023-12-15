@@ -1,51 +1,9 @@
-[gd_scene load_steps=16 format=3 uid="uid://cwdjkeklfejlw"]
+[gd_scene load_steps=10 format=3 uid="uid://cwdjkeklfejlw"]
 
 [ext_resource type="PackedScene" uid="uid://nyxkf4sj23o6" path="res://scenes/debug_panel.tscn" id="1_ra0yj"]
-[ext_resource type="Script" path="res://scripts/world/ChunkManager.gd" id="1_ucbca"]
 [ext_resource type="Script" path="res://scripts/marching_cubes/MarcherSettings.gd" id="2_4ghey"]
 [ext_resource type="PackedScene" uid="uid://dgsoamvsdubea" path="res://scenes/test_actor.tscn" id="2_mps6m"]
 [ext_resource type="Script" path="res://scripts/world/LodChunkManager.gd" id="4_gferu"]
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_bvt55"]
-seed = 881477183
-frequency = 0.04
-fractal_type = 2
-fractal_octaves = 3
-fractal_lacunarity = 1.5
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_ehd5b"]
-noise_type = 0
-seed = 1327520283
-fractal_type = 0
-fractal_octaves = 1
-
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_hyg32"]
-noise_type = 0
-seed = 692503688
-frequency = 0.035
-fractal_type = 2
-fractal_octaves = 3
-fractal_gain = 0.35
-domain_warp_amplitude = 46.025
-domain_warp_frequency = 0.35
-
-[sub_resource type="Gradient" id="Gradient_2ugnc"]
-interpolation_mode = 2
-offsets = PackedFloat32Array(0.231788, 0.291391, 0.490066, 0.596026, 0.655629, 1)
-colors = PackedColorArray(0.156037, 0.106529, 0.156049, 1, 0.231373, 0.164706, 0.231373, 1, 0.303233, 0.303233, 0.303233, 1, 0.50579, 0.234801, 9.62615e-08, 1, 0.0980392, 0.4, 0, 1, 1, 1, 1, 1)
-
-[sub_resource type="Resource" id="Resource_q5utm"]
-resource_name = "Settings"
-script = ExtResource("2_4ghey")
-isoLevel = -1.0
-gradient = SubResource("Gradient_2ugnc")
-smoothMesh = true
-smoothNormals = false
-baseMul = 50.0
-maskMul = 20.0
-minMaskHeight = -0.25
-tunnelMul = 10.0
-tunnelSurfacing = 0.0
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_rvjjm"]
 
@@ -84,17 +42,6 @@ transform = Transform3D(0.707107, 0.5, -0.5, 0, 0.707107, 0.707107, 0.707107, -0
 
 [node name="DebugPanel" parent="." instance=ExtResource("1_ra0yj")]
 
-[node name="ChunkManager" type="Node3D" parent="."]
-script = ExtResource("1_ucbca")
-noiseMaskMultiplier = 40.0
-noise = SubResource("FastNoiseLite_bvt55")
-noiseMask = SubResource("FastNoiseLite_ehd5b")
-noiseTunnel = SubResource("FastNoiseLite_hyg32")
-disabled = true
-marcherSettings = SubResource("Resource_q5utm")
-playerPath = NodePath("../TestActor")
-renderDistance = 6
-
 [node name="LodChunkManager" type="Node3D" parent="." node_paths=PackedStringArray("viewer")]
 script = ExtResource("4_gferu")
 marcherSettings = SubResource("Resource_i7gms")
@@ -102,6 +49,7 @@ viewer = NodePath("../TestActor")
 
 [node name="TestActor" parent="." instance=ExtResource("2_mps6m")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, 0)
+flySpeed = 120.0
 flying = true
 
 [node name="SpawnMarker" type="MeshInstance3D" parent="."]
