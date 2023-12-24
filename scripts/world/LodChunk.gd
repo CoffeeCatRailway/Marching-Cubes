@@ -9,6 +9,7 @@ const lods: Array[int] = [2, 4, 8, 16, 30]#[2, 4, 8, 16, 30, 60]
 const lodDistance: Array[int] = [1750, 1500, 1100, 750, 400]#[2000, 1750, 1500, 1200, 750, 500] # Tweak distances
 
 @export var material: Material
+#@onready var collisionShape: CollisionShape3D = $StaticBody3D/CollisionShape3D
 
 const CENTER_OFFSET := Vector3.ONE / 2.#Vector3(.5, .5, .5)
 var chunkCoord := Vector3i.ZERO

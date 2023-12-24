@@ -1,8 +1,8 @@
 [gd_scene load_steps=11 format=3 uid="uid://cwdjkeklfejlw"]
 
-[ext_resource type="PackedScene" uid="uid://nyxkf4sj23o6" path="res://scenes/debug_panel.tscn" id="1_ra0yj"]
+[ext_resource type="PackedScene" uid="uid://nyxkf4sj23o6" path="res://scenes/instanceable/debug_panel.tscn" id="1_ra0yj"]
 [ext_resource type="Script" path="res://scripts/marching_cubes/MarcherSettings.gd" id="2_4ghey"]
-[ext_resource type="PackedScene" uid="uid://dgsoamvsdubea" path="res://scenes/test_actor.tscn" id="2_mps6m"]
+[ext_resource type="PackedScene" uid="uid://dgsoamvsdubea" path="res://scenes/instanceable/test_actor.tscn" id="2_mps6m"]
 [ext_resource type="Material" uid="uid://byv254couvh67" path="res://materials/steepness_mat.tres" id="4_b6kli"]
 [ext_resource type="Script" path="res://scripts/world/LodChunkManager.gd" id="4_gferu"]
 

@@ -17,6 +17,11 @@ uniform float dirtFade : hint_range(0., 1., .05) = 0.;
 uniform float rockOffset : hint_range(-1., 1., .05) = .05;
 uniform float rockFade : hint_range(0., 1., .05) = 0.;
 
+uniform sampler3D chunkTexture : source_color, repeat_disable;
+uniform float isoLevel = 0.;
+uniform float isoMargin : hint_range(0., 1., .01) = .02;
+uniform float chunkSize = 100.;
+
 varying vec3 worldPos;
 
 void vertex() {
@@ -37,10 +42,17 @@ void fragment() {
 	vec4 dirtColor = mix(dirtLightColor, dirtDarkColor, noiseXY.r);
 	vec4 rockColor = mix(rockLightColor, rockDarkColor, noiseXY.r);
 	
-	vec4 groundColor = mix(rockColor, dirtColor, rockMask);
-	ALBEDO = mix(grassColor, groundColor, dirtMask).rgb;
-	//if (worldPos.y < 0.) // TODO: Compare to noise data of mesh
-	//	ALBEDO = mix(dirtColor, rockColor, dirtMask).rgb;
-	//else
-	//	ALBEDO = mix(grassColor, dirtColor, dirtMask).rgb;
+	//vec4 groundColor = mix(rockColor, dirtColor, rockMask);
+	//ALBEDO = mix(grassColor, groundColor, dirtMask).rgb;
+	
+	vec3 worldValue = texture(chunkTexture, worldPos / chunkSize).xyz;
+	
+	bool underground = worldValue.y > isoLevel + isoMargin;
+	//ALBEDO = mix(mix(dirtColor, rockColor, rockMask).rgb, mix(grassColor, dirtColor, dirtMask).rgb, underground ? 0. : 1.);
+	if (underground)
+		ALBEDO = mix(dirtColor, rockColor, rockMask).rgb;
+	else
+		ALBEDO = mix(grassColor, dirtColor, dirtMask).rgb;
+	
+	//ALBEDO = underground ? vec3(1.) : vec3(0.);
 }

@@ -18,6 +18,7 @@ var chunkLoaded := false
 
 @onready var activeCoords: Array[Vector3i] = []
 @onready var activeChunks: Array[LodRSChunk] = []
+@onready var reloadChunks: Array[Vector3i] = []
 
 var mutex: Mutex
 var semaphore: Semaphore
@@ -43,6 +44,8 @@ func _ready() -> void:
 	thread.start(chunkThreadProcess)
 	semaphore.post()
 
+var minVal := 0.
+var maxVal := 0.
 func noiseFunc(pos: Vector3, marcherSettings: MarcherSettings) -> float:
 	if pos.y <= -(chunkSize / 2.):
 		return marcherSettings.isoLevel;
@@ -56,7 +59,11 @@ func noiseFunc(pos: Vector3, marcherSettings: MarcherSettings) -> float:
 	var tunnel := marcherSettings.noiseTunnel.get_noise_3dv(pos) * marcherSettings.tunnelMul
 	if tunnel < 0. && noiseVal >= marcherSettings.tunnelSurfacing:
 		noiseVal *= tunnel
-	return snappedf(noiseVal, .001)
+	
+	noiseVal = snappedf(noiseVal, .001)
+	minVal = minf(minVal, noiseVal)
+	maxVal = maxf(maxVal, noiseVal)
+	return noiseVal
 
 func chunkThreadProcess() -> void:
 	Thread.set_thread_safety_checks_enabled(false)
@@ -84,6 +91,35 @@ func _process(delta) -> void:
 	else:
 		chunkLoaded = false
 	mutex.unlock()
+	
+	if Input.is_action_just_released("ui_up"):
+		print("Min: %s, Max: %s" % [minVal, maxVal])
+	
+	if Input.is_action_just_released("ui_down"):
+		mutex.lock()
+		var chunkIndex := activeCoords.find(currentChunkPos)
+		if chunkIndex != -1:
+			reloadChunks.append(currentChunkPos)
+			var chunk := activeChunks[chunkIndex]
+			var radius := 3
+			for x in range(-radius, radius + 1):
+				for y in range(-radius, radius + 1):
+					for z in range(-radius, radius + 1):
+						var pos := Vector3(15 + x, 15 + y, 15 + z)
+						for i in 8:
+							var offset: Vector3 = pos + LookupTable.CornerOffsets[i]
+							var index := chunk.getGridCellAtPos(offset)
+							if index != -1 && offset.distance_to(Vector3(15, 15, 15)) <= radius - .5:
+								var cell: Marcher.GridCell = chunk.chunkData[0][index]
+								cell.value[i] -= .5
+			#for i in range(30):
+			#	var index := chunk.getGridCellAtPos(Vector3(15, i, 15))
+			#	if index != -1:
+			#		var cell: Marcher.GridCell = chunk.chunkData[0][index]
+			#		cell.value = [maxVal, minVal, minVal, minVal, minVal, minVal, maxVal, minVal]
+		mutex.unlock()
+		
+		semaphore.post()
 	
 	if Input.is_action_just_released("ui_page_down") && WorldSaver.retriveData(Vector3i.ZERO).size() > 0:
 		var data: Array[Marcher.GridCell] = WorldSaver.retriveData(Vector3i.ZERO)[0]
@@ -113,25 +149,6 @@ func _getPlayerChunk(pos: Vector3) -> Vector3i:
 		chunkPos.z -= 1
 	return chunkPos
 
-#func loadChunk(chunkCoords: Vector3i) -> void:
-#	var chunkIndex := activeCoords.find(chunkCoords)
-#	var viewerPos: Vector3 = viewer.global_position#call_deferred("get_global_position")
-#	if chunkIndex == -1:
-#		var chunk = chunkScene.instantiate()
-#		var pos := chunkCoords * chunkSize
-#		chunk.setup(Vector3(pos.x, 0., pos.z), chunkCoords, chunkSize)
-#		chunk.updateLod(viewerPos)
-#		chunk.generateChunk(marcherSettings)
-#		activeChunks.append(chunk)
-#		activeCoords.append(chunkCoords)
-#		#add_child(chunk)
-#		call_deferred("add_child", chunk)
-#	else:
-#		var chunk := activeChunks[chunkIndex]
-#		#chunk.updateChunk(viewerPos, viewDistance)
-#		if chunk.updateLod(viewerPos):
-#			chunk.generateChunk(marcherSettings)
-
 func loadRSChunk(chunkCoords: Vector3i) -> void:
 	var chunkIndex := activeCoords.find(chunkCoords)
 	var viewerPos: Vector3 = viewer.global_position#call_deferred("get_global_position")
@@ -143,10 +160,15 @@ func loadRSChunk(chunkCoords: Vector3i) -> void:
 		activeChunks.append(chunk)
 		activeCoords.append(chunkCoords)
 	else:
+		var reloadIndex := reloadChunks.find(chunkCoords)
+		var shouldReload = reloadIndex != -1
+		
 		var chunk := activeChunks[chunkIndex]
 		#chunk.updateChunk(viewerPos, viewDistance)
-		if chunk.updateLod(viewerPos):
+		if chunk.updateLod(viewerPos) || shouldReload:
 			chunk.generateChunk()
+			if shouldReload:
+				reloadChunks.remove_at(reloadIndex)
 
 func updateVisibleChunks() -> void:
 	var timeNow := Time.get_ticks_msec()

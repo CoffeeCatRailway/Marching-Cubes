@@ -98,17 +98,17 @@ func march(pos: Vector3, size: Vector3i, marcherSettings: MarcherSettings, gridC
 # Given a grid cell and an isoLevel, calcularte the triangular facets requied to represent the isosurface through the cell.
 # Return the number of triangular facets, array "triangles" will be loaded up with the vertices at most 5 triangular facets.
 # 0 will be returned if the grid cell is eiter totally above or below the isoLevel
-func polygoniseCube(grid: GridCell, marcherSettings: MarcherSettings, triangles: Array[Triangle], resolustion: float = 1.) -> int:
+func polygoniseCube(gridCell: GridCell, marcherSettings: MarcherSettings, triangles: Array[Triangle], resolustion: float = 1.) -> int:
 	# Determine the index into the edge table which tells us which vertices are inside of the surface
 	var cubeIndex: int = 0
-	if grid.value[0] < marcherSettings.isoLevel: cubeIndex |= 1
-	if grid.value[1] < marcherSettings.isoLevel: cubeIndex |= 2
-	if grid.value[2] < marcherSettings.isoLevel: cubeIndex |= 4
-	if grid.value[3] < marcherSettings.isoLevel: cubeIndex |= 8
-	if grid.value[4] < marcherSettings.isoLevel: cubeIndex |= 16
-	if grid.value[5] < marcherSettings.isoLevel: cubeIndex |= 32
-	if grid.value[6] < marcherSettings.isoLevel: cubeIndex |= 64
-	if grid.value[7] < marcherSettings.isoLevel: cubeIndex |= 128
+	if gridCell.value[0] < marcherSettings.isoLevel: cubeIndex |= 1
+	if gridCell.value[1] < marcherSettings.isoLevel: cubeIndex |= 2
+	if gridCell.value[2] < marcherSettings.isoLevel: cubeIndex |= 4
+	if gridCell.value[3] < marcherSettings.isoLevel: cubeIndex |= 8
+	if gridCell.value[4] < marcherSettings.isoLevel: cubeIndex |= 16
+	if gridCell.value[5] < marcherSettings.isoLevel: cubeIndex |= 32
+	if gridCell.value[6] < marcherSettings.isoLevel: cubeIndex |= 64
+	if gridCell.value[7] < marcherSettings.isoLevel: cubeIndex |= 128
 	
 	if cubeIndex == 0 || cubeIndex == 255:
 		return 0
@@ -131,13 +131,13 @@ func polygoniseCube(grid: GridCell, marcherSettings: MarcherSettings, triangles:
 		
 		triangles[triCount] = Triangle.new()
 		if marcherSettings.smoothMesh:
-			triangles[triCount].vertices[0] = vertexInterp(marcherSettings.isoLevel, LookupTable.CornerOffsets[e00] * resolustion, LookupTable.CornerOffsets[e01] * resolustion, grid.value[e00], grid.value[e01]) + grid.pos
-			triangles[triCount].vertices[1] = vertexInterp(marcherSettings.isoLevel, LookupTable.CornerOffsets[e10] * resolustion, LookupTable.CornerOffsets[e11] * resolustion, grid.value[e10], grid.value[e11]) + grid.pos
-			triangles[triCount].vertices[2] = vertexInterp(marcherSettings.isoLevel, LookupTable.CornerOffsets[e20] * resolustion, LookupTable.CornerOffsets[e21] * resolustion, grid.value[e20], grid.value[e21]) + grid.pos
+			triangles[triCount].vertices[0] = vertexInterp(marcherSettings.isoLevel, LookupTable.CornerOffsets[e00] * resolustion, LookupTable.CornerOffsets[e01] * resolustion, gridCell.value[e00], gridCell.value[e01]) + gridCell.pos
+			triangles[triCount].vertices[1] = vertexInterp(marcherSettings.isoLevel, LookupTable.CornerOffsets[e10] * resolustion, LookupTable.CornerOffsets[e11] * resolustion, gridCell.value[e10], gridCell.value[e11]) + gridCell.pos
+			triangles[triCount].vertices[2] = vertexInterp(marcherSettings.isoLevel, LookupTable.CornerOffsets[e20] * resolustion, LookupTable.CornerOffsets[e21] * resolustion, gridCell.value[e20], gridCell.value[e21]) + gridCell.pos
 		else:
-			triangles[triCount].vertices[0] = (LookupTable.CornerOffsets[e00] * resolustion + LookupTable.CornerOffsets[e01] * resolustion) / 2. + grid.pos
-			triangles[triCount].vertices[1] = (LookupTable.CornerOffsets[e10] * resolustion + LookupTable.CornerOffsets[e11] * resolustion) / 2. + grid.pos
-			triangles[triCount].vertices[2] = (LookupTable.CornerOffsets[e20] * resolustion + LookupTable.CornerOffsets[e21] * resolustion) / 2. + grid.pos
+			triangles[triCount].vertices[0] = (LookupTable.CornerOffsets[e00] * resolustion + LookupTable.CornerOffsets[e01] * resolustion) / 2. + gridCell.pos
+			triangles[triCount].vertices[1] = (LookupTable.CornerOffsets[e10] * resolustion + LookupTable.CornerOffsets[e11] * resolustion) / 2. + gridCell.pos
+			triangles[triCount].vertices[2] = (LookupTable.CornerOffsets[e20] * resolustion + LookupTable.CornerOffsets[e21] * resolustion) / 2. + gridCell.pos
 		
 		if marcherSettings.smoothNormals:
 			triangles[triCount].normal[0] = triangles[triCount].vertices[0].normalized()

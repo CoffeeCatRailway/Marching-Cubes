@@ -1,0 +1,60 @@
+[gd_scene load_steps=7 format=3 uid="uid://denqdstupnsvr"]
+
+[ext_resource type="Script" path="res://scripts/tests/3DTextureTest.gd" id="1_qanf3"]
+[ext_resource type="Script" path="res://scripts/marching_cubes/MarcherSettings.gd" id="2_0bie5"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_rvjjm"]
+fractal_octaves = 4
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_bivhi"]
+noise_type = 0
+fractal_type = 0
+fractal_octaves = 1
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_egp8c"]
+fractal_type = 2
+fractal_octaves = 4
+
+[sub_resource type="Resource" id="Resource_ydklc"]
+resource_name = "Settings"
+script = ExtResource("2_0bie5")
+isoLevel = 0.0
+smoothMesh = true
+smoothNormals = false
+baseMul = 50.0
+noiseBase = SubResource("FastNoiseLite_rvjjm")
+maskMul = 50.0
+minMaskHeight = -0.25
+noiseMask = SubResource("FastNoiseLite_bivhi")
+tunnelMul = 10.0
+tunnelSurfacing = 0.0
+noiseTunnel = SubResource("FastNoiseLite_egp8c")
+
+[node name="3DTextureTest" type="Node2D"]
+script = ExtResource("1_qanf3")
+settings = SubResource("Resource_ydklc")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+position = Vector2(575, 267)
+
+[node name="Sprite2D2" type="Sprite2D" parent="."]
+texture_filter = 1
+position = Vector2(906, 267)
+
+[node name="HSlider" type="HSlider" parent="."]
+offset_left = 247.0
+offset_top = 609.0
+offset_right = 900.0
+offset_bottom = 625.0
+
+[node name="HSlider2" type="HSlider" parent="."]
+offset_left = 247.0
+offset_top = 582.0
+offset_right = 900.0
+offset_bottom = 598.0
+min_value = 1.0
+value = 10.0
+
+[connection signal="value_changed" from="HSlider" to="." method="_on_slice_changed"]
+[connection signal="value_changed" from="HSlider2" to="." method="_on_res_changed"]

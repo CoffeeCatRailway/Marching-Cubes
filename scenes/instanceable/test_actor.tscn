@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3 uid="uid://dgsoamvsdubea"]
+
+[ext_resource type="Script" path="res://scripts/TestActor.gd" id="1_nc6mc"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_bitgi"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_3a26y"]
+
+[node name="TestActor" type="CharacterBody3D"]
+script = ExtResource("1_nc6mc")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CapsuleMesh_bitgi")
+skeleton = NodePath("../..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_3a26y")
+
+[node name="CamHolder" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+
+[node name="Camera3D" type="Camera3D" parent="CamHolder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.00048995, 0)

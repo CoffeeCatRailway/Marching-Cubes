@@ -11,7 +11,7 @@ var marcherSettings: MarcherSettings
 var material: Material
 
 ## Position
-const CENTER_OFFSET := Vector3.ONE / 2.#Vector3(.5, .5, .5)
+const OFFSET := Vector3(0., .5, 0.)#Vector3.ONE / 2.
 var chunkPos := Vector3.ZERO
 var transform := Transform3D()
 var chunkCoord := Vector3i.ZERO
@@ -32,7 +32,7 @@ var mutex := Mutex.new()
 
 ## Collision
 var collisionShape: ConcavePolygonShape3D
-var shouldGenerateCollision = false
+var shouldGenerateCollision := false
 
 ## Debug
 static var DEBUG_COLOR := false
@@ -87,21 +87,29 @@ func updateLod(viewerPosition: Vector3) -> bool:
 		return true
 	return false
 
+func getGridCellAtPos(pos: Vector3) -> int:
+	var meshPos = pos# / chunkSize
+	#meshPos += CENTER_OFFSET
+	#meshPos *= resolution
+	var gcIndex = meshPos.z * resolution * resolution + meshPos.y * resolution + meshPos.x
+	if gcIndex < chunkData[0].size():
+		return gcIndex
+	return -1
+
 func generateChunk() -> void:
 	mutex.lock()
 	var polys: Array[Marcher.Triangle] = []
 	polys.resize(10)
 	
-	var isMaxResolution := resolution >= lods[lods.size() - 1]
+	var shouldSave := resolution >= lods[lods.size() - 1]
 	var gridCells: Array[Marcher.GridCell] = []
-	if isMaxResolution:
+	if shouldSave:
 		gridCells = WorldSaver.retriveData(chunkCoord)[0]#chunkData[0]
 	
 	var shouldGenCells := gridCells.size() == 0
-	if shouldGenCells && isMaxResolution:
+	if shouldGenCells && shouldSave:
 		gridCells.resize(resolution * resolution * resolution)
 	
-	#var arrMesh: ArrayMesh
 	var lastInstance: RID
 	var surfaceTool := SurfaceTool.new()
 	
@@ -112,8 +120,6 @@ func generateChunk() -> void:
 		surfaceTool.set_color(color)
 	
 	#var totalTriCount := 0
-	#var minVal := 0.
-	#var maxVal := 0.
 	
 	# When loading 'modified' terrain, only use chunkData for highest resolution
 	# Regenerate mesh for low-resolution chunks
@@ -121,12 +127,12 @@ func generateChunk() -> void:
 		for y in resolution:
 			for z in resolution:
 				# Get the percentage of the currnet point
-				var percent := Vector3(x, y, z) / resolution - CENTER_OFFSET
+				var percent := Vector3(x, y, z) / resolution - OFFSET
 				var vertex := Vector3(percent.x, percent.y, percent.z) * chunkSize
 				
 				var gridCell: Marcher.GridCell
 				var gcIndex = z * resolution * resolution + y * resolution + x
-				if isMaxResolution && gcIndex > gridCells.size():
+				if shouldSave && gcIndex >= gridCells.size():
 					push_warning("Chunk%s: Skipping cell %s,%s,%s at index %s!" % [chunkCoord, x, y, z, gcIndex])
 					continue
 				
@@ -134,11 +140,9 @@ func generateChunk() -> void:
 					gridCell = Marcher.GridCell.new(vertex.x, vertex.y, vertex.z)
 					for i in 8:
 						gridCell.value[i] = marcherSettings.noiseFunc.call(chunkPos + vertex + LookupTable.CornerOffsets[i] / resolution * chunkSize, marcherSettings)
-						#minVal = minf(minVal, gridCell.value[i])
-						#maxVal = maxf(maxVal, gridCell.value[i])
-					if isMaxResolution:
+					if shouldSave:
 						gridCells[gcIndex] = gridCell
-				elif isMaxResolution:
+				elif shouldSave:
 					gridCell = gridCells[gcIndex]
 				
 				var triCount := Marcher.polygoniseCube(gridCell, marcherSettings, polys, float(chunkSize) / float(resolution))
@@ -159,14 +163,12 @@ func generateChunk() -> void:
 					surfaceTool.add_vertex(tri.vertices[0])
 					#totalTriCount += 1
 	#print("Triangles: %s" % totalTriCount)
-	#print("Min: %s, Max: %s" % [minVal, maxVal])
 	
-	if isMaxResolution:
+	if shouldSave:
 		chunkData[0] = gridCells
 		save()
 	
 	#surfaceTool.index()
-	#arrMesh = surfaceTool.commit()
 	meshData = surfaceTool.commit_to_arrays()
 	
 	instance = renderServer.instance_create()
@@ -180,13 +182,6 @@ func generateChunk() -> void:
 		renderServer.mesh_surface_set_material(meshInstance, 0, vertexColMat)
 	else:
 		renderServer.mesh_surface_set_material(meshInstance, 0, material)
-	
-	#mesh = arrMesh
-	#if mesh.get_surface_count() > 0:
-	#	if DEBUG_COLOR:
-	#		mesh.surface_set_material(0, vertexColMat)
-	#	else:
-	#		mesh.surface_set_material(0, material)
 	
 	mutex.unlock()
 	

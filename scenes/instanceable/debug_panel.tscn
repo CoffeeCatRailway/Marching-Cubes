@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3 uid="uid://nyxkf4sj23o6"]
+
+[ext_resource type="Script" path="res://scripts/DebugPanel.gd" id="1_sgixl"]
+
+[node name="DebugPanel" type="AspectRatioContainer"]
+offset_right = 245.0
+offset_bottom = 104.0
+alignment_horizontal = 0
+alignment_vertical = 0
+script = ExtResource("1_sgixl")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 2
+text = "FPS: 0
+Draw Calls: 0
+Frame Time: 0
+VRAM: 0"
