@@ -61,7 +61,7 @@ func _ready() -> void:
 	timeNow = Time.get_ticks_msec()
 	valueArray = PackedByteArray()
 	
-	var mi := 10
+	var mi := 256
 	var ma := 0
 	for z in resolution:
 		var byteArray := texture.get_data()[z].get_data()
@@ -71,7 +71,6 @@ func _ready() -> void:
 		valueArray.append_array(byteArray)
 	print("Min: %s, Max: %s" % [mi, ma])
 	print("Point array took %s miliseconds" % [Time.get_ticks_msec() - timeNow])
-	print(valueArray[indexFromCoord(0, 0, 0, resolution)], " - ", valueArray[indexFromCoord(0, resolution, 0, resolution)])
 	
 	#var slice := texture.get_data()[0]
 	#var array := slice.get_data()

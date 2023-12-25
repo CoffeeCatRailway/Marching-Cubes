@@ -19,7 +19,8 @@ uniform float rockFade : hint_range(0., 1., .05) = 0.;
 
 uniform sampler3D chunkTexture : source_color, repeat_disable;
 uniform float isoLevel = 0.;
-uniform float isoMargin : hint_range(0., 1., .01) = .02;
+uniform float isoMargin : hint_range(0., 1., .01) = .01;
+uniform float isoOffset : hint_range(-1., 1., .01) = .02;
 uniform float chunkSize = 100.;
 
 varying vec3 worldPos;
@@ -47,12 +48,14 @@ void fragment() {
 	
 	vec3 worldValue = texture(chunkTexture, worldPos / chunkSize).xyz;
 	
-	bool underground = worldValue.y > isoLevel + isoMargin;
-	//ALBEDO = mix(mix(dirtColor, rockColor, rockMask).rgb, mix(grassColor, dirtColor, dirtMask).rgb, underground ? 0. : 1.);
-	if (underground)
-		ALBEDO = mix(dirtColor, rockColor, rockMask).rgb;
-	else
-		ALBEDO = mix(grassColor, dirtColor, dirtMask).rgb;
+	float undergroundMix = smoothstep(isoLevel + isoOffset, isoLevel + isoOffset + isoMargin, worldValue.y);
+	ALBEDO = mix(mix(grassColor, dirtColor, dirtMask).rgb, mix(dirtColor, rockColor, rockMask).rgb, undergroundMix);
+	//ALBEDO = vec3(undergroundMix);
 	
+	//bool underground = worldValue.y > isoLevel + isoMargin;
+	//if (underground)
+	//	ALBEDO = mix(dirtColor, rockColor, rockMask).rgb;
+	//else
+	//	ALBEDO = mix(grassColor, dirtColor, dirtMask).rgb;
 	//ALBEDO = underground ? vec3(1.) : vec3(0.);
 }
