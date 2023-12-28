@@ -69,9 +69,7 @@ func _ready() -> void:
 	print("Texture creation took %s miliseconds" % [Time.get_ticks_msec() - timeNow])
 	
 	# Set shader uniforms
-	(material as ShaderMaterial).set_shader_parameter("chunkTexture", textureNoTunnels)
-	(material as ShaderMaterial).set_shader_parameter("isoLevel", settings.isoLevel)
-	(material as ShaderMaterial).set_shader_parameter("chunkSize", size)
+	updateMaterialParameters(textureNoTunnels)
 	
 	# Set initial chunkData paramaters
 	chunkData = ChunkData.new()
@@ -94,6 +92,8 @@ func _ready() -> void:
 			ma = max(i, ma)
 		valueArray.append_array(byteArray)
 		valueNoTunnelsArray.append_array(byteNoTunnelsArray)
+	texture = null
+	textureNoTunnels = null
 	print("Min: %s, Max: %s" % [mi, ma])
 	print("Point array took %s miliseconds" % [Time.get_ticks_msec() - timeNow])
 	
@@ -110,26 +110,52 @@ func _ready() -> void:
 	
 	#generateMesh()
 
+func updateMaterialParameters(textureNoTunnels: ImageTexture3D) -> void:
+	(material as ShaderMaterial).set_shader_parameter("chunkTexture", textureNoTunnels)
+	(material as ShaderMaterial).set_shader_parameter("isoLevel", settings.isoLevel)
+	(material as ShaderMaterial).set_shader_parameter("chunkSize", size)
+
 func saveChunkData() -> void:
+	var timeNow := Time.get_ticks_msec()
 	if !chunkData:
 		printerr("'chunkData' is not initialised!")
 		return
 	chunkData.values = valueArray
 	chunkData.valuesWithoutTUnnels = valueNoTunnelsArray
 	ResourceSaver.save(chunkData, savePath)
-	print("Saved")
+	print("Saving took %s miliseconds" % [Time.get_ticks_msec() - timeNow])
 
 func loadChunkData() -> void:
-	print("Loading")
-	var data = ResourceLoader.load(savePath, "ChunkData", ResourceLoader.CACHE_MODE_REUSE)
-	if data == null:
+	var timeNow := Time.get_ticks_msec()
+	var resource = ResourceLoader.load(savePath, "ChunkData", ResourceLoader.CACHE_MODE_REUSE)
+	if resource == null:
 		printerr("Couldn't load '", savePath, "'")
 		return
-	resolution = data.resolution
+	resolution = resource.resolution
 	lod = resolution
-	valueArray = data.values
-	valueNoTunnelsArray = data.valuesWithoutTUnnels
-	print("Loaded")
+	valueArray = resource.values
+	valueNoTunnelsArray = resource.valuesWithoutTUnnels
+	print("Loading took %s miliseconds" % [Time.get_ticks_msec() - timeNow])
+	
+	timeNow = Time.get_ticks_msec()
+	#var data: Array[Image] = []
+	var dataNoTunnels: Array[Image] = []
+	for z in resolution:
+		var startIndex := indexFromCoord(0, 0, z, resolution)
+		var endIndex := indexFromCoord(0, 0, z + 1, resolution)
+		#var slice := valueArray.slice(startIndex, endIndex)
+		#data.append(Image.create_from_data(resolution, resolution, false, resource.format, slice))
+		
+		var sliceNoTunnels := valueNoTunnelsArray.slice(startIndex, endIndex)
+		dataNoTunnels.append(Image.create_from_data(resolution, resolution, false, resource.format, sliceNoTunnels))
+	
+	#var texture := ImageTexture3D.new()
+	#texture.create(Image.FORMAT_L8, resolution, resolution, resolution, false, data)
+	var textureNoTunnels := ImageTexture3D.new()
+	textureNoTunnels.create(Image.FORMAT_L8, resolution, resolution, resolution, false, dataNoTunnels)
+	updateMaterialParameters(textureNoTunnels)
+	textureNoTunnels = null
+	print("Generating no tunnels texture took %s miliseconds" % [Time.get_ticks_msec() - timeNow])
 
 func getMaxNoise(maxY: float, settings: MarcherSettings) -> float:
 	var value := -maxY
