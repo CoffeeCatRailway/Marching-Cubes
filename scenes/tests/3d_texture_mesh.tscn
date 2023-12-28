@@ -35,7 +35,7 @@ tunnelMul = 10.0
 tunnelSurfacing = 0.5
 noiseTunnel = SubResource("FastNoiseLite_egp8c")
 
-[sub_resource type="ArrayMesh" id="ArrayMesh_mrmph"]
+[sub_resource type="ArrayMesh" id="ArrayMesh_sc721"]
 _surfaces = [{
 "aabb": AABB(0, 0.833333, 0, 98.3333, 61.6667, 98.3333),
 "format": 3,
@@ -51,7 +51,7 @@ settings = SubResource("Resource_53x1h")
 material = ExtResource("3_vmjkp")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-mesh = SubResource("ArrayMesh_mrmph")
+mesh = SubResource("ArrayMesh_sc721")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707107, 0.5, -0.5, 0, 0.707107, 0.707107, 0.707107, -0.5, 0.5, 0, 0, 0)

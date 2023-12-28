@@ -22,6 +22,8 @@ extends Node3D
 		loadChunkData()
 		load = false
 
+@export var initialSeed := "0"
+
 @export_range(1., 200., 1.) var size := 100.
 @export_range(1, 200, 1) var resolution := 60
 @export_range(1, 200, 1) var lod := 60
@@ -46,7 +48,8 @@ func _ready() -> void:
 	meshInstance = $MeshInstance3D
 	
 	# Generate seed(s)
-	var seed := settings.randomiseNoise("0")
+	var seed := settings.randomiseNoise(initialSeed)
+	print("Seed: ", seed)
 	theoreticalMaxNoise = getMaxNoise(-(resolution / 2.), settings) / minf(settings.baseMul, settings.maskMul) / 2.
 	print("Theoretical max noise value: ", theoreticalMaxNoise)
 	
@@ -205,18 +208,46 @@ func createSlice(resolution: int, slice: int, hasTunnels: bool) -> Image:
 			image.set_pixel(x, y, Color.from_hsv(0., 0., value))
 	return image
 
+func dot3di(a: Vector3i, b: Vector3i) -> int:
+	return a.x * b.x + a.y * b.y + a.z * b.z
+
 func digRandomHole() -> void:
-	var holePos := Vector3(random.randi_range(0, resolution - 1), random.randi_range(0, resolution - 1), random.randi_range(0, resolution - 1))
+	var holePos := Vector3i(random.randi_range(0, resolution - 1), random.randi_range(0, resolution - 1), random.randi_range(0, resolution - 1))
 	var radius := float(random.randi() % 10 + 6)
+	var dig := random.randf() < .75
 	print("Hole position: ", holePos)
 	print("Hole radius: ", radius)
+	print("Is digging: ", dig)
+	
+	var tempPos: Vector3i = Vector3i.ZERO
+	var weight := ((1 if dig else -1))# * 60)
+	
 	for x in resolution:
 		for y in resolution:
 			for z in resolution:
-				var dist := holePos.distance_to(Vector3(x, y, z))
-				if dist <= radius:
+				tempPos.x = x
+				tempPos.y = y
+				tempPos.z = z
+				
+				var offset: Vector3i = tempPos - holePos
+				var sqrDst := dot3di(offset, offset)
+				if sqrDst <= radius * radius:
 					var index := indexFromCoord(x, y, z, resolution)
-					valueArray[index] = 255 if y <= 0 else 0 # 1 (255) is filled, 0 is empty
+					var dst := sqrt(sqrDst)
+					var brushWeight := 1. - smoothstep(radius * .7, radius, dst)
+					
+					# 1 (255) is filled, 0 is empty
+					var value: int = valueArray[index] - roundToNearest(255. * brushWeight) * weight
+					#value /= absi(weight)
+					
+					# Add 'floors' to roof & bottom
+					if y >= resolution - 1:
+						value = 0
+					elif y <= 0:
+						value = 255
+					
+					# Clamp value to image range
+					valueArray[index] = clampi(value, 0, 255)
 
 #const OFFSET := Vector3(0., .5, 0.)#Vector3.ONE / 2.
 func generateMesh() -> void:
