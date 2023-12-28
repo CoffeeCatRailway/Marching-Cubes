@@ -1,13 +1,13 @@
 shader_type spatial;
 
-uniform vec4 grassLightColor : source_color;
-uniform vec4 grassDarkColor : source_color;
+uniform vec3 grassLightColor : source_color;
+uniform vec3 grassDarkColor : source_color;
 
-uniform vec4 dirtLightColor : source_color;
-uniform vec4 dirtDarkColor : source_color;
+uniform vec3 dirtLightColor : source_color;
+uniform vec3 dirtDarkColor : source_color;
 
-uniform vec4 rockLightColor : source_color;
-uniform vec4 rockDarkColor : source_color;
+uniform vec3 rockLightColor : source_color;
+uniform vec3 rockDarkColor : source_color;
 
 uniform sampler2D noiseTex;
 
@@ -33,29 +33,22 @@ void fragment() {
 	float noiseXZ = texture(noiseTex, worldPos.xz / 30.).r;
 	float noiseXY = texture(noiseTex, worldPos.xy / 30.).r;
 	
-	float dirtDotProduct = dot(mat3(VIEW_MATRIX) * vec3(0., -1., 0.), NORMAL);
-	float dirtMask = smoothstep(dirtOffset - dirtFade, dirtOffset + dirtFade, dirtDotProduct);
+	vec3 grassColor = mix(grassLightColor, grassDarkColor, noiseXZ);
+	vec3 dirtColor = mix(dirtLightColor, dirtDarkColor, noiseXY);
+	vec3 rockColor = mix(rockLightColor, rockDarkColor, (noiseXY + noiseXZ) / 2.);
 	
-	float rockDotProduct = dot(mat3(VIEW_MATRIX) * vec3(0., 1., 0.), NORMAL);
-	float rockMask = smoothstep(rockOffset - rockFade, rockOffset + rockFade, rockDotProduct);
+	float normalDotProduct = dot(mat3(VIEW_MATRIX) * vec3(0., -1., 0.), NORMAL);
+	float dirtMask = smoothstep(dirtOffset - dirtFade, dirtOffset + dirtFade, normalDotProduct);
+	float rockMask = smoothstep(rockOffset - rockFade, rockOffset + rockFade, -normalDotProduct);
 	
-	vec4 grassColor = mix(grassLightColor, grassDarkColor, noiseXZ);
-	vec4 dirtColor = mix(dirtLightColor, dirtDarkColor, noiseXY);
-	vec4 rockColor = mix(rockLightColor, rockDarkColor, (noiseXY + noiseXZ) / 2.);
+	vec3 grassDirtColor = mix(grassColor, dirtColor, dirtMask);
+	vec3 dirtRockColor = mix(dirtColor, rockColor, rockMask);
 	
-	//vec4 groundColor = mix(rockColor, dirtColor, rockMask);
-	//ALBEDO = mix(grassColor, groundColor, dirtMask).rgb;
+	//vec3 groundColor = mix(rockColor, dirtColor, rockMask);
+	//ALBEDO = mix(grassColor, groundColor, dirtMask);
 	
-	vec3 worldValue = texture(chunkTexture, worldPos / chunkSize).xyz;
-	
-	float undergroundMix = smoothstep(isoLevel + isoOffset, isoLevel + isoOffset + isoMargin, worldValue.y);
-	ALBEDO = mix(mix(grassColor, dirtColor, dirtMask).rgb, mix(dirtColor, rockColor, rockMask).rgb, undergroundMix);
+	float worldYValue = texture(chunkTexture, worldPos / chunkSize).y;
+	float undergroundMix = smoothstep(isoLevel + isoOffset, isoLevel + isoOffset + isoMargin, worldYValue);
+	ALBEDO = mix(grassDirtColor, dirtRockColor, undergroundMix);
 	//ALBEDO = vec3(undergroundMix);
-	
-	//bool underground = worldValue.y > isoLevel + isoMargin;
-	//if (underground)
-	//	ALBEDO = mix(dirtColor, rockColor, rockMask).rgb;
-	//else
-	//	ALBEDO = mix(grassColor, dirtColor, dirtMask).rgb;
-	//ALBEDO = underground ? vec3(1.) : vec3(0.);
 }
