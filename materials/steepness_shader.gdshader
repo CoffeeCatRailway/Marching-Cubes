@@ -30,8 +30,8 @@ void vertex() {
 }
 
 void fragment() {
-	vec4 noiseXZ = texture(noiseTex, worldPos.xz / 30.);
-	vec4 noiseXY = texture(noiseTex, worldPos.xy / 30.);
+	float noiseXZ = texture(noiseTex, worldPos.xz / 30.).r;
+	float noiseXY = texture(noiseTex, worldPos.xy / 30.).r;
 	
 	float dirtDotProduct = dot(mat3(VIEW_MATRIX) * vec3(0., -1., 0.), NORMAL);
 	float dirtMask = smoothstep(dirtOffset - dirtFade, dirtOffset + dirtFade, dirtDotProduct);
@@ -39,9 +39,9 @@ void fragment() {
 	float rockDotProduct = dot(mat3(VIEW_MATRIX) * vec3(0., 1., 0.), NORMAL);
 	float rockMask = smoothstep(rockOffset - rockFade, rockOffset + rockFade, rockDotProduct);
 	
-	vec4 grassColor = mix(grassLightColor, grassDarkColor, noiseXZ.r);
-	vec4 dirtColor = mix(dirtLightColor, dirtDarkColor, noiseXY.r);
-	vec4 rockColor = mix(rockLightColor, rockDarkColor, noiseXY.r);
+	vec4 grassColor = mix(grassLightColor, grassDarkColor, noiseXZ);
+	vec4 dirtColor = mix(dirtLightColor, dirtDarkColor, noiseXY);
+	vec4 rockColor = mix(rockLightColor, rockDarkColor, (noiseXY + noiseXZ) / 2.);
 	
 	//vec4 groundColor = mix(rockColor, dirtColor, rockMask);
 	//ALBEDO = mix(grassColor, groundColor, dirtMask).rgb;

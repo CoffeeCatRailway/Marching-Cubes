@@ -13,6 +13,14 @@ extends Node3D
 	set(_value):
 		digRandomHole()
 		randomHole = false
+@export var save := false:
+	set(_value):
+		saveChunkData()
+		save = false
+@export var load := false:
+	set(_value):
+		loadChunkData()
+		load = false
 
 @export_range(1., 200., 1.) var size := 100.
 @export_range(1, 200, 1) var resolution := 60
@@ -22,6 +30,7 @@ extends Node3D
 var theoreticalMaxNoise: float
 
 var valueArray: PackedByteArray
+var valueNoTunnelsArray: PackedByteArray
 
 var meshInstance: MeshInstance3D
 
@@ -30,9 +39,13 @@ var random: RandomNumberGenerator
 var minVal := 10.
 var maxVal := 0.
 
+var chunkData: ChunkData
+const savePath := "user://chunkData.tres"
+
 func _ready() -> void:
 	meshInstance = $MeshInstance3D
 	
+	# Generate seed(s)
 	var seed := settings.randomiseNoise("0")
 	theoreticalMaxNoise = getMaxNoise(-(resolution / 2.), settings) / minf(settings.baseMul, settings.maskMul) / 2.
 	print("Theoretical max noise value: ", theoreticalMaxNoise)
@@ -40,37 +53,52 @@ func _ready() -> void:
 	random = RandomNumberGenerator.new()
 	random.seed = seed
 	
+	# Generate 3D textures
 	var timeNow := Time.get_ticks_msec()
 	var data: Array[Image] = []
 	var dataNoTunnels: Array[Image] = []
 	for z in resolution:
 		data.append(createSlice(resolution, z, true))
 		dataNoTunnels.append(createSlice(resolution, z, false))
+	print("Min: %s, Max: %s" % [minVal, maxVal])
 	
 	var texture := ImageTexture3D.new()
 	texture.create(Image.FORMAT_L8, resolution, resolution, resolution, false, data)
 	var textureNoTunnels := ImageTexture3D.new()
 	textureNoTunnels.create(Image.FORMAT_L8, resolution, resolution, resolution, false, dataNoTunnels)
 	print("Texture creation took %s miliseconds" % [Time.get_ticks_msec() - timeNow])
-	print("Min: %s, Max: %s" % [minVal, maxVal])
 	
+	# Set shader uniforms
 	(material as ShaderMaterial).set_shader_parameter("chunkTexture", textureNoTunnels)
 	(material as ShaderMaterial).set_shader_parameter("isoLevel", settings.isoLevel)
 	(material as ShaderMaterial).set_shader_parameter("chunkSize", size)
 	
+	# Set initial chunkData paramaters
+	chunkData = ChunkData.new()
+	chunkData.settings = settings
+	chunkData.format = texture.get_format()
+	chunkData.resolution = resolution
+	
+	# Generate value arrays
 	timeNow = Time.get_ticks_msec()
 	valueArray = PackedByteArray()
+	valueNoTunnelsArray = PackedByteArray()
 	
 	var mi := 256
 	var ma := 0
 	for z in resolution:
 		var byteArray := texture.get_data()[z].get_data()
+		var byteNoTunnelsArray := textureNoTunnels.get_data()[z].get_data()
 		for i in byteArray:
 			mi = min(i, mi)
 			ma = max(i, ma)
 		valueArray.append_array(byteArray)
+		valueNoTunnelsArray.append_array(byteNoTunnelsArray)
 	print("Min: %s, Max: %s" % [mi, ma])
 	print("Point array took %s miliseconds" % [Time.get_ticks_msec() - timeNow])
+	
+	# Save chunkData
+	#saveChunkData()
 	
 	#var slice := texture.get_data()[0]
 	#var array := slice.get_data()
@@ -82,6 +110,27 @@ func _ready() -> void:
 	
 	#generateMesh()
 
+func saveChunkData() -> void:
+	if !chunkData:
+		printerr("'chunkData' is not initialised!")
+		return
+	chunkData.values = valueArray
+	chunkData.valuesWithoutTUnnels = valueNoTunnelsArray
+	ResourceSaver.save(chunkData, savePath)
+	print("Saved")
+
+func loadChunkData() -> void:
+	print("Loading")
+	var data = ResourceLoader.load(savePath, "ChunkData", ResourceLoader.CACHE_MODE_REUSE)
+	if data == null:
+		printerr("Couldn't load '", savePath, "'")
+		return
+	resolution = data.resolution
+	lod = resolution
+	valueArray = data.values
+	valueNoTunnelsArray = data.valuesWithoutTUnnels
+	print("Loaded")
+
 func getMaxNoise(maxY: float, settings: MarcherSettings) -> float:
 	var value := -maxY
 	value += 1. * settings.baseMul
@@ -91,6 +140,9 @@ func getMaxNoise(maxY: float, settings: MarcherSettings) -> float:
 func noiseFunc(pos: Vector3, hasTunnels: bool) -> float:
 	#if pos.y <= -(chunkSize / 2.):
 	#	return settings.isoLevel;
+	if pos.y <= -(resolution / 2.):
+		return 1.
+		
 	var noiseVal: float = -pos.y
 	noiseVal += settings.noiseBase.get_noise_3dv(pos) * settings.baseMul
 	#noiseVal += marcherSettings.noiseMask.get_noise_3dv(pos) * marcherSettings.maskMul
@@ -106,19 +158,19 @@ func noiseFunc(pos: Vector3, hasTunnels: bool) -> float:
 		if tunnel < 0. && noiseVal >= settings.isoLevel: # Check if tunnel value is negative & noiseVal is "filled"
 			noiseVal *= tunnel
 			noiseVal = (noiseVal + 1.) / 2. # Bring value back to 0-1
+		minVal = minf(minVal, noiseVal)
+		maxVal = maxf(maxVal, noiseVal)
 	
 	#noiseVal = snappedf(noiseVal, .001)
-	minVal = minf(minVal, noiseVal)
-	maxVal = maxf(maxVal, noiseVal)
 	return clampf(noiseVal, 0., 1.)
 
-var tempPos: Vector3 = Vector3.ZERO
-func createSlice(size: int, slice: int, hasTunnels: bool) -> Image:
-	var image := Image.create(size, size, false, Image.FORMAT_L8)
-	for x in size:
-		for y in size:
+func createSlice(resolution: int, slice: int, hasTunnels: bool) -> Image:
+	var image := Image.create(resolution, resolution, false, Image.FORMAT_L8)
+	var tempPos: Vector3 = Vector3.ZERO
+	for x in resolution:
+		for y in resolution:
 			tempPos.x = x
-			tempPos.y = (y - size / 2.)
+			tempPos.y = (y - resolution / 2.)
 			tempPos.z = slice
 			tempPos += position
 			#tempPos.y *= -1.
@@ -129,17 +181,16 @@ func createSlice(size: int, slice: int, hasTunnels: bool) -> Image:
 
 func digRandomHole() -> void:
 	var holePos := Vector3(random.randi_range(0, resolution - 1), random.randi_range(0, resolution - 1), random.randi_range(0, resolution - 1))
-	var radius := float(random.randi() % 10 + 1)
+	var radius := float(random.randi() % 10 + 6)
 	print("Hole position: ", holePos)
 	print("Hole radius: ", radius)
 	for x in resolution:
 		for y in resolution:
 			for z in resolution:
-				var pos := Vector3(x, y, z)
-				var dist := holePos.distance_to(pos)
+				var dist := holePos.distance_to(Vector3(x, y, z))
 				if dist <= radius:
 					var index := indexFromCoord(x, y, z, resolution)
-					valueArray[index] = 0 # 1 (255) is filled, 0 is empty
+					valueArray[index] = 255 if y <= 0 else 0 # 1 (255) is filled, 0 is empty
 
 #const OFFSET := Vector3(0., .5, 0.)#Vector3.ONE / 2.
 func generateMesh() -> void:
@@ -192,7 +243,6 @@ func indexFromCoord(x: float, y: float, z: float, resolution: int) -> int:
 	return z * resolution * resolution + y * resolution + x
 
 func vertexInterp(v1: Vector4, v2: Vector4, isoLevel: float) -> Vector3:
-	#p1 + (iso - valp1) * (p2 - p1) / (valp2 - valp1)
 	var v1p := Vector3(v1.x, v1.y, v1.z)
 	var v2p := Vector3(v2.x, v2.y, v2.z)
 	
@@ -201,9 +251,10 @@ func vertexInterp(v1: Vector4, v2: Vector4, isoLevel: float) -> Vector3:
 	if is_equal_approx(isoLevel - v2.w, 0.):
 		return v2p
 	
-	#var mu := (isoLevel - v1.w) / (v2.w - v1.w)
-	#return v1p + mu * (v2p - v1p)
 	return v1p + (isoLevel - v1.w) * (v2p - v1p) / (v2.w - v1.w)
+	
+	# a*(|s-z|/|z-v|)+b*(|s-v|/|z-v|)  a,v1p b,v1p s,isoLevel v,v1.w z,v2.w
+	#return (v1p * absf(isoLevel - v2.w) + v2p * absf(isoLevel - v1.w)) / absf(v2.w - v1.w)
 
 func vertexInterpMid(v1: Vector4, v2: Vector4) -> Vector3:
 	var v1p := Vector3(v1.x, v1.y, v1.z)

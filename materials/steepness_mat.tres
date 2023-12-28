@@ -2,7 +2,7 @@
 
 [ext_resource type="Shader" path="res://materials/steepness_shader.gdshader" id="1_brmb4"]
 
-[sub_resource type="ImageTexture3D" id="ImageTexture3D_j2ea6"]
+[sub_resource type="ImageTexture3D" id="ImageTexture3D_5jhh1"]
 
 [sub_resource type="FastNoiseLite" id="FastNoiseLite_bbkvh"]
 frequency = 0.0019
@@ -31,4 +31,4 @@ shader_parameter/isoMargin = 0.01
 shader_parameter/isoOffset = 0.02
 shader_parameter/chunkSize = 100.0
 shader_parameter/noiseTex = SubResource("NoiseTexture2D_0paqp")
-shader_parameter/chunkTexture = SubResource("ImageTexture3D_j2ea6")
+shader_parameter/chunkTexture = SubResource("ImageTexture3D_5jhh1")
